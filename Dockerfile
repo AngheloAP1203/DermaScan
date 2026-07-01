@@ -15,5 +15,6 @@ COPY app.py .
 COPY src/ ./src/
 COPY templates/ ./templates/
 
-EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "app:app"]
+ENV PORT=7860
+EXPOSE 7860
+CMD gunicorn --bind 0.0.0.0:${PORT} --workers 1 --timeout 300 app:app
