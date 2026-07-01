@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DermaScan – Análisis de Lesiones Cutáneas</title>
+<style>
+  :root{
+    --bg:#0a1628; --bg2:#0d1b2e; --card:#13243d; --card2:#1a2f4d; --line:rgba(255,255,255,.08);
+    --accent:#22d3ee; --accent2:#2dd4bf; --success:#34d399; --danger:#f87171; --warn:#fbbf24;
+    --text:#e6eef8; --muted:#8aa0bb; --sidebar-w:250px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(34,211,238,.10),transparent 55%),
+               radial-gradient(ellipse 60% 50% at 90% 20%,rgba(45,212,191,.08),transparent 55%)}
+
+  /* ===== Layout general: sidebar + contenido ===== */
+  .app{position:relative;z-index:1;display:flex;min-height:100vh}
+  .content{flex:1;min-width:0;padding:24px 28px 60px;max-width:1100px;margin:0 auto}
+
+  /* ===== Sidebar ===== */
+  .sidebar{width:var(--sidebar-w);flex-shrink:0;background:linear-gradient(180deg,var(--bg2),var(--bg));
+    border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:0 6px 18px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .sb-logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#06283d;font-weight:900;
+    box-shadow:0 4px 14px rgba(34,211,238,.35);flex-shrink:0}
+  .sb-title{font-size:1.15rem;font-weight:800;color:#fff;line-height:1.1}
+  .sb-title span{color:var(--accent)}
+  .sb-sub{font-size:.66rem;color:var(--muted);margin-top:1px}
+
+  .sb-badges{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+  .sb-badge{font-size:.68rem;padding:6px 10px;border-radius:8px;font-weight:600;letter-spacing:.2px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);text-align:center}
+  .sb-badge.accent{background:rgba(34,211,238,.13);border-color:rgba(34,211,238,.35);color:var(--accent)}
+
+  .sb-btn-metricas{width:100%;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.28);
+    color:var(--accent);padding:10px;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;margin-bottom:18px}
+  .sb-btn-metricas:hover{background:rgba(34,211,238,.18)}
+
+  .sb-nav{display:flex;flex-direction:column;gap:4px}
+  .sb-navlabel{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:10px 6px 6px}
+  .nav-btn{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:1px solid transparent;color:var(--muted);
+    padding:10px 12px;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .18s;text-align:left;position:relative}
+  .nav-btn .ico{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
+  .nav-btn .lbl{flex:1}
+  .nav-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .nav-btn.active{background:linear-gradient(135deg,rgba(34,211,238,.22),rgba(45,212,191,.14));color:#fff;border-color:rgba(34,211,238,.35)}
+  .nav-dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex-shrink:0;box-shadow:0 0 6px var(--success);display:none}
+  .nav-dot.show{display:block}
+
+  .sb-disabled{opacity:.35;pointer-events:none}
+
+  /* Mobile: sidebar colapsa a barra superior horizontal */
+  .sb-toggle{display:none}
+  @media (max-width:860px){
+    .app{flex-direction:column}
+    .sidebar{position:relative;width:100%;height:auto;top:0;padding:14px 16px;border-right:none;border-bottom:1px solid var(--line)}
+    .sb-nav{flex-direction:row;flex-wrap:wrap;overflow-x:auto}
+    .nav-btn{flex:1;min-width:110px;justify-content:center}
+    .content{padding:18px 14px 40px}
+  }
+
+  /* Panel métricas */
+  #panel-metricas{display:none;background:var(--card);border-radius:16px;padding:24px;margin:0 0 18px;border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.25);animation:fadeIn .4s}
+  .mm-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .mm-card{background:var(--card2);border-radius:12px;padding:14px 6px;text-align:center;border:1px solid var(--line)}
+  .mm-val{font-size:1.25rem;font-weight:800;color:var(--accent)}.mm-key{font-size:.62rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+  table.mm-tab{width:100%;border-collapse:collapse;font-size:.8rem;margin:8px 0}
+  table.mm-tab th,table.mm-tab td{border:1px solid var(--line);padding:7px 9px;text-align:center}
+  table.mm-tab th{background:rgba(34,211,238,.18);color:#fff}
+  .mm-vn,.mm-vp{background:rgba(52,211,153,.18)}.mm-fp,.mm-fn{background:rgba(248,113,113,.15)}
+  .mm-bar-row{display:flex;align-items:center;gap:8px;font-size:.76rem;margin:5px 0}
+  .mm-bar-row .lbl{width:110px;color:var(--muted)}
+  .mm-bar{flex:1;background:rgba(255,255,255,.06);border-radius:6px;height:15px;overflow:hidden}
+  .mm-bar>div{height:100%;border-radius:6px}
+
+  /* Upload */
+  .drop-zone{border:2px dashed rgba(34,211,238,.45);border-radius:18px;padding:46px 20px;text-align:center;
+    cursor:pointer;transition:all .25s;background:rgba(34,211,238,.03);margin:0 0 20px}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(34,211,238,.09)}
+  .drop-icon{font-size:3.2rem;margin-bottom:10px}
+  .drop-text{font-size:1.05rem;color:var(--muted)}.drop-text strong{color:var(--text)}
+  .drop-hint{font-size:.78rem;color:var(--muted);margin-top:6px}
+  .btn-upload{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#06283d;border:none;padding:14px 34px;border-radius:11px;font-size:1rem;font-weight:800;cursor:pointer;
+    margin-top:14px;box-shadow:0 6px 22px rgba(34,211,238,.35);transition:all .2s}
+  .btn-upload:hover{transform:translateY(-2px)}
+
+  #preview-wrap{display:none;text-align:center;margin:0 0 18px;animation:fadeIn .4s}
+  #preview-img{max-width:360px;width:100%;max-height:360px;border-radius:16px;border:2px solid rgba(34,211,238,.35);
+    box-shadow:0 10px 36px rgba(0,0,0,.45);object-fit:cover}
+
+  #loading{display:none;text-align:center;padding:40px 0;animation:fadeIn .3s}
+  .spinner{width:62px;height:62px;margin:0 auto 16px;border:4px solid rgba(34,211,238,.18);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:1.05rem;color:var(--muted)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Barra de precarga */
+  #preload-bar{display:none;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
+    border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)}
+  #preload-bar.show{display:flex}
+  .pl-spin{width:16px;height:16px;border:2px solid rgba(34,211,238,.25);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+  #preload-count{color:var(--accent);font-weight:700}
+
+  #resultado{display:none;animation:slideUp .5s ease}
+  .result-card{background:var(--card);border-radius:18px;padding:26px;border:1px solid var(--line);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+
+  .verdict{text-align:center;padding:22px;border-radius:14px;margin-bottom:16px}
+  .verdict.maligno{background:linear-gradient(135deg,rgba(248,113,113,.16),rgba(248,113,113,.05));border:1px solid rgba(248,113,113,.4)}
+  .verdict.benigno{background:linear-gradient(135deg,rgba(52,211,153,.16),rgba(52,211,153,.05));border:1px solid rgba(52,211,153,.4)}
+  .verdict-icon{font-size:2.6rem;display:block;margin-bottom:4px}
+  .verdict-label{font-size:1.9rem;font-weight:900;letter-spacing:2px}
+  .verdict.maligno .verdict-label{color:var(--danger)}.verdict.benigno .verdict-label{color:var(--success)}
+  .verdict-desc{font-size:.86rem;color:var(--muted);margin-top:6px;line-height:1.5}
+
+  .conf-label{font-size:.84rem;color:var(--muted);margin-bottom:6px}
+  .conf-bar-track{background:rgba(255,255,255,.06);border-radius:999px;height:12px;overflow:hidden;margin-bottom:4px}
+  .conf-bar-fill{height:100%;border-radius:999px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)}
+  .maligno-fill{background:linear-gradient(90deg,#f87171,#fbbf24)}
+  .benigno-fill{background:linear-gradient(90deg,#34d399,#22d3ee)}
+  .conf-value{text-align:right;font-size:.82rem;color:var(--muted);margin-bottom:18px}
+
+  .page{display:none;animation:fadeIn .35s ease}
+  .page.active{display:block}
+
+  .section-title{font-size:1rem;font-weight:700;color:var(--accent);margin:6px 0 14px;display:flex;align-items:center;gap:8px}
+
+  .metrics{display:flex;gap:10px;margin:0 0 18px}
+  .metric-card{flex:1;background:var(--card2);border-radius:12px;padding:14px 10px;text-align:center;border:1px solid var(--line)}
+  .metric-val{font-size:1.3rem;font-weight:800}.metric-key{font-size:.66rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+  .charts-row{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:center}
+  .chart-box{flex:1;min-width:260px;text-align:center}
+  .chart-box .cap{font-size:.78rem;color:var(--muted);margin-top:6px}
+
+  .gauge-wrap{text-align:center;margin:8px 0}
+  .gauge-band{font-size:1.5rem;font-weight:800;margin-top:4px}
+  .gauge-rec{font-size:.86rem;color:var(--muted);line-height:1.5;margin-top:8px;background:var(--card2);border-radius:12px;padding:13px 15px}
+
+  /* Explorador de umbral */
+  .thr-box{background:var(--card2);border-radius:14px;padding:18px;margin-top:18px;border:1px solid var(--line)}
+  .thr-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+  .thr-row input{flex:1;accent-color:var(--accent)}
+  .thr-verdict{font-weight:800;font-size:1.1rem}
+  .thr-note{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:8px}
+
+  /* Sub-navegación (Explicabilidad) */
+  .subnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
+  .sub-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);color:var(--muted);padding:9px 18px;border-radius:10px;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .2s}
+  .sub-btn:hover{color:var(--text)}
+  .sub-btn.active{background:rgba(34,211,238,.22);color:#fff;border-color:var(--accent)}
+  .sub-dot{width:6px;height:6px;border-radius:50%;background:var(--success);display:none}
+  .sub-dot.show{display:inline-block}
+
+  /* Visor XAI grande (una técnica por vez) */
+  .xai-stage{position:relative;width:520px;max-width:100%;aspect-ratio:1;margin:0 auto;border-radius:18px;overflow:hidden;
+    border:2px solid rgba(34,211,238,.35);box-shadow:0 14px 44px rgba(0,0,0,.5);background:var(--bg2)}
+  .xai-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+  .xai-spin{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,22,40,.6)}
+  .xai-spin.show{display:flex}
+
+  .vis-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .vis-box{flex:1;min-width:240px;text-align:center}
+  .vis-box img{width:100%;border-radius:14px;border:1px solid var(--line)}
+  .vis-cap{font-size:.74rem;color:var(--muted);margin-top:6px}
+  .paleta{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .swatch{text-align:center;font-size:.64rem;color:var(--muted)}
+  .swatch .col{width:54px;height:54px;border-radius:10px;border:1px solid rgba(255,255,255,.18);margin-bottom:3px}
+
+  .abcde-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .abcde-card{background:var(--card2);border-radius:12px;padding:14px 16px;border:1px solid var(--line)}
+  .abcde-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .abcde-name{font-weight:700;font-size:.94rem}
+  .abcde-tag{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:999px}
+  .tag-Bajo{background:rgba(52,211,153,.2);color:var(--success)}
+  .tag-Medio{background:rgba(251,191,36,.2);color:var(--warn)}
+  .tag-Alto{background:rgba(248,113,113,.2);color:var(--danger)}
+  .abcde-track{background:rgba(255,255,255,.06);border-radius:999px;height:7px;overflow:hidden;margin:5px 0}
+  .abcde-fill{height:100%;border-radius:999px;width:0%;transition:width .9s}
+  .abcde-val{font-size:.72rem;color:var(--muted)}
+
+  .guia-item{background:var(--card2);border-radius:12px;padding:13px 17px;margin-bottom:9px;font-size:.86rem;line-height:1.55;border:1px solid var(--line)}
+  .guia-item b{color:var(--accent)}
+
+  /* Avanzado */
+  .adv-block{background:var(--card2);border-radius:14px;padding:16px 18px;margin-bottom:14px;border:1px solid var(--line)}
+  .adv-head{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;font-weight:700}
+  .adv-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06283d;border:none;padding:8px 18px;border-radius:9px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+  .adv-btn:hover{transform:translateY(-1px)}
+  .adv-btn:disabled{opacity:.6;cursor:wait}
+  .adv-body{margin-top:14px}.adv-body:empty{display:none}
+  .reli{text-align:center;padding:15px;border-radius:12px;margin-bottom:10px}
+  .reli b{font-size:1.25rem}
+  .bar-chart{display:flex;flex-direction:column;gap:7px;margin:8px 0}
+  .bc-row{display:flex;align-items:center;gap:10px;font-size:.78rem}
+  .bc-lbl{width:90px;color:var(--muted);text-align:right;flex-shrink:0}
+  .bc-track{flex:1;background:rgba(255,255,255,.06);border-radius:6px;height:20px;overflow:hidden}
+  .bc-fill{height:100%;border-radius:6px;transition:width .8s}
+  .bc-val{width:52px;font-size:.74rem;color:var(--muted)}
+  .adv-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .adv-stat{flex:1;min-width:80px;background:var(--card);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--line)}
+  .adv-stat .v{font-size:1.05rem;font-weight:700}.adv-stat .k{font-size:.62rem;color:var(--muted);text-transform:uppercase}
+  .cmp-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .cmp-box{flex:1;min-width:220px;text-align:center}
+  .cmp-box img{width:100%;border-radius:14px;border:1px solid var(--line)}
+  .cmp-box .cap{font-size:.72rem;color:var(--muted);margin-top:5px}
+  .adv-note{font-size:.78rem;color:var(--muted);margin-top:10px;line-height:1.5;background:var(--card);padding:11px 13px;border-radius:10px}
+  .mini-spin{width:28px;height:28px;border:3px solid rgba(34,211,238,.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:12px auto}
+
+  /* Banner de calidad de imagen */
+  #quality-banner{display:none;flex-direction:column;gap:6px;border-radius:12px;padding:12px 16px;margin:0 0 16px;font-size:.8rem;line-height:1.5}
+  #quality-banner.show{display:flex}
+  #quality-banner.warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:var(--warn)}
+  #quality-banner.danger{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);color:var(--danger)}
+  .qb-row{display:flex;align-items:center;gap:8px}
+  .qb-actions{display:flex;gap:10px;margin-top:10px}
+  .qb-btn{flex:1;padding:9px;border-radius:9px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+  .qb-btn-yes{background:rgba(52,211,153,.18);color:#34d399;border:1px solid rgba(52,211,153,.4)}
+  .qb-btn-yes:hover{background:rgba(52,211,153,.3)}
+  .qb-btn-no{background:rgba(248,113,113,.18);color:#f87171;border:1px solid rgba(248,113,113,.4)}
+  .qb-btn-no:hover{background:rgba(248,113,113,.3)}
+
+  /* Consenso XAI */
+  .consenso-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+  .consenso-thumb{width:100px;text-align:center}
+  .consenso-thumb img{width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+  .consenso-thumb .nm{font-size:.68rem;color:var(--muted);margin-top:4px}
+  .consenso-thumb .ck{color:var(--success);font-size:.7rem}
+  .agree-wrap{text-align:center;margin-top:18px}
+  .agree-ring{position:relative;width:150px;height:150px;margin:0 auto}
+  .agree-ring svg{transform:rotate(-90deg)}
+  .agree-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800}
+
+  /* Evolución */
+  .evo-cols{display:flex;gap:16px;flex-wrap:wrap}
+  .evo-col{flex:1;min-width:240px}
+  .evo-col h4{font-size:.85rem;color:var(--accent);margin-bottom:8px}
+  .evo-drop{border:2px dashed rgba(34,211,238,.4);border-radius:14px;padding:22px 14px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(34,211,238,.02);min-height:130px;display:flex;flex-direction:column;justify-content:center}
+  .evo-drop:hover{border-color:var(--accent);background:rgba(34,211,238,.06)}
+  .evo-drop img{max-width:100%;max-height:140px;border-radius:10px;margin:0 auto}
+  .evo-cmp{margin-top:22px}
+  .evo-row{display:flex;align-items:center;gap:14px;background:var(--card2);border-radius:12px;padding:14px 18px;margin-bottom:10px;border:1px solid var(--line)}
+  .evo-row .lbl{width:150px;font-size:.82rem;color:var(--muted)}
+  .evo-row .vals{flex:1;display:flex;align-items:center;gap:10px;font-size:.9rem;font-weight:700}
+  .evo-arrow{font-size:1.1rem}
+  .evo-delta{font-size:.78rem;padding:2px 9px;border-radius:999px;font-weight:700}
+
+  .warning-box{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:13px 17px;font-size:.82rem;color:var(--warn);display:flex;gap:10px;align-items:flex-start;margin-top:18px;line-height:1.5}
+  .btn-reset{width:100%;margin-top:16px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.35);color:var(--accent);padding:13px;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s}
+  .btn-reset:hover{background:rgba(34,211,238,.24)}
+
+  footer{text-align:center;margin-top:40px;font-size:.76rem;color:var(--muted);line-height:1.8}
+  #fi{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">✚</div>
+      <div><div class="sb-title">Derma<span>Scan</span></div><div class="sb-sub">Análisis de lesiones cutáneas</div></div>
+    </div>
+
+    <div class="sb-badges">
+      <span class="sb-badge accent">EfficientNetB4 · 89.69% Accuracy</span>
+      <span class="sb-badge">HAM10000 · UPAO 2026</span>
+    </div>
+
+    <button class="sb-btn-metricas" onclick="toggleMetricas()">📈 Rendimiento del modelo</button>
+
+    <div class="sb-navlabel">Análisis</div>
+    <div class="sb-nav" id="sb-nav">
+      <button class="nav-btn active sb-disabled" data-page="diag" onclick="setPage('diag')"><span class="ico">🩺</span><span class="lbl">Diagnóstico</span></button>
+      <button class="nav-btn sb-disabled" data-page="explica" onclick="setPage('explica')"><span class="ico">🔥</span><span class="lbl">Explicabilidad</span><span class="nav-dot" id="dot-explica"></span></button>
+      <button class="nav-btn sb-disabled" data-page="deteccion" onclick="setPage('deteccion')"><span class="ico">📍</span><span class="lbl">Detección</span><span class="nav-dot" id="dot-deteccion"></span></button>
+      <button class="nav-btn sb-disabled" data-page="incert" onclick="setPage('incert')"><span class="ico">❓</span><span class="lbl">Incertidumbre</span><span class="nav-dot" id="dot-incert"></span></button>
+      <button class="nav-btn sb-disabled" data-page="vis" onclick="setPage('vis')"><span class="ico">🎨</span><span class="lbl">Visión</span></button>
+      <button class="nav-btn sb-disabled" data-page="abcde" onclick="setPage('abcde')"><span class="ico">🔬</span><span class="lbl">ABCDE</span></button>
+      <button class="nav-btn sb-disabled" data-page="consenso" onclick="setPage('consenso')"><span class="ico">🧭</span><span class="lbl">Consenso</span><span class="nav-dot" id="dot-consenso"></span></button>
+      <button class="nav-btn sb-disabled" data-page="avanzado" onclick="setPage('avanzado')"><span class="ico">🧪</span><span class="lbl">Avanzado</span></button>
+      <button class="nav-btn" data-page="evolucion" onclick="setPage('evolucion')"><span class="ico">📈</span><span class="lbl">Evolución</span></button>
+      <button class="nav-btn sb-disabled" data-page="guia" onclick="setPage('guia')"><span class="ico">📖</span><span class="lbl">Guía</span></button>
+    </div>
+  </aside>
+
+  <div class="content">
+
+    <div id="panel-metricas">
+      <div class="section-title">📈 Rendimiento del modelo (prueba · 1503 imágenes)</div>
+      <div class="mm-grid" id="mm-grid"></div>
+      <div class="section-title" style="font-size:.88rem">Matriz de confusión</div>
+      <table class="mm-tab" id="mm-confusion"></table>
+      <div class="section-title" style="font-size:.88rem">Métricas por clase</div>
+      <table class="mm-tab" id="mm-clases"></table>
+      <div class="section-title" style="font-size:.88rem">Comparativa vs baseline clásico</div>
+      <div id="mm-baseline"></div>
+      <div class="section-title" style="font-size:.88rem">Curva ROC</div>
+      <div style="text-align:center"><img id="roc-img" style="max-width:100%;border-radius:12px" src=""></div>
+    </div>
+
+    <input type="file" id="fi" accept="image/*" onchange="onFileSelected(this.files[0])">
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div class="drop-icon">🩺</div>
+      <div class="drop-text"><strong>Arrastra una imagen aquí</strong></div>
+      <div class="drop-text" style="margin-top:4px">o</div>
+      <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()">Seleccionar imagen</button>
+      <div class="drop-hint">JPG, PNG, BMP — lesión cutánea</div>
+    </div>
+
+    <div id="preview-wrap"><img id="preview-img" src=""></div>
+
+    <div id="quality-banner"></div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Analizando...</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:8px;">EfficientNetB4 · Grad-CAM · ABCDE · Visión</div>
+    </div>
+
+    <div id="resultado">
+      <div id="preload-bar"><div class="pl-spin"></div><span>Precargando análisis avanzados… <span id="preload-count">0/5</span></span></div>
+
+      <div class="result-card">
+        <div class="verdict" id="verdict-box">
+          <span class="verdict-icon" id="verdict-icon"></span>
+          <div class="verdict-label" id="verdict-label"></div>
+          <div class="verdict-desc" id="verdict-desc"></div>
+        </div>
+        <div class="conf-label">Nivel de confianza del modelo</div>
+        <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar"></div></div>
+        <div class="conf-value" id="conf-value"></div>
+
+        <!-- PÁGINA: Diagnóstico -->
+        <div class="page active" id="page-diag">
+          <div class="metrics">
+            <div class="metric-card"><div class="metric-val" id="m-conf">—</div><div class="metric-key">Confianza</div></div>
+            <div class="metric-card" title="En GPU de producción: ~21 ms"><div class="metric-val" id="m-lat">—</div><div class="metric-key">Inferencia (CPU)</div></div>
+            <div class="metric-card"><div class="metric-val">B4</div><div class="metric-key">Modelo</div></div>
+          </div>
+          <div class="charts-row">
+            <div class="chart-box"><svg id="donut" width="220" height="220" viewBox="0 0 220 220"></svg><div class="cap">Probabilidad Benigno / Maligno</div></div>
+            <div class="chart-box"><svg id="radar" width="260" height="240" viewBox="0 0 260 240"></svg><div class="cap">Perfil morfológico ABCDE</div></div>
+          </div>
+          <div class="section-title" style="margin-top:20px">📊 Nivel de riesgo</div>
+          <div class="gauge-wrap">
+            <svg width="260" height="145" viewBox="0 0 260 145">
+              <path d="M24 130 A106 106 0 0 1 236 130" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="18" stroke-linecap="round"/>
+              <path d="M24 130 A106 106 0 0 1 77 40"   fill="none" stroke="#34d399" stroke-width="18" stroke-linecap="round"/>
+              <path d="M83 36 A106 106 0 0 1 130 24"   fill="none" stroke="#fbbf24" stroke-width="18"/>
+              <path d="M136 24 A106 106 0 0 1 183 40"  fill="none" stroke="#fb923c" stroke-width="18"/>
+              <path d="M189 44 A106 106 0 0 1 236 130" fill="none" stroke="#f87171" stroke-width="18" stroke-linecap="round"/>
+              <line id="needle" x1="130" y1="130" x2="130" y2="42" stroke="#fff" stroke-width="3.5" stroke-linecap="round" transform="rotate(0 130 130)"/>
+              <circle cx="130" cy="130" r="8" fill="#fff"/>
+            </svg>
+            <div class="gauge-band" id="gauge-band">—</div>
+            <div class="gauge-rec" id="gauge-rec"></div>
+          </div>
+
+          <!-- Explorador de umbral -->
+          <div class="thr-box">
+            <div class="section-title" style="margin:0 0 6px">🎚️ Explorador de umbral de decisión</div>
+            <div style="font-size:.8rem;color:var(--muted)">Ajusta el umbral con que el modelo decide "Maligno" y observa el efecto en vivo.</div>
+            <div class="thr-row">
+              <span style="font-size:.78rem;color:var(--muted)">0.50</span>
+              <input type="range" id="thr-slider" min="50" max="95" value="62" oninput="setThreshold(this.value)">
+              <span style="font-size:.78rem;color:var(--muted)">0.95</span>
+            </div>
+            <div style="text-align:center">Umbral: <b id="thr-val">0.62</b> →
+              <span class="thr-verdict" id="thr-verdict">—</span></div>
+            <div class="thr-note" id="thr-note"></div>
+          </div>
+        </div>
+
+        <!-- PÁGINA: Explicabilidad -->
+        <div class="page" id="page-explica">
+          <div class="section-title">🔥 Mapas de explicabilidad (XAI)</div>
+          <div class="subnav">
+            <button class="sub-btn active" id="xb-gradcam" onclick="setXai('gradcam')">Grad-CAM<span class="sub-dot" id="xd-gradcam"></span></button>
+            <button class="sub-btn" id="xb-saliency" onclick="setXai('saliency')">Saliency<span class="sub-dot" id="xd-saliency"></span></button>
+            <button class="sub-btn" id="xb-oclusion" onclick="setXai('oclusion')">Oclusión<span class="sub-dot" id="xd-oclusion"></span></button>
+            <button class="sub-btn" id="xb-integrated" onclick="setXai('integrated')">Integrated Grad.<span class="sub-dot" id="xd-integrated"></span></button>
+          </div>
+          <div class="xai-stage"><img id="xai-img" src=""><div class="xai-spin" id="xai-spin"><div class="mini-spin"></div></div></div>
+          <div class="adv-note" id="xai-note"></div>
+
+          <div class="adv-block" style="margin-top:16px">
+            <div class="adv-head"><span>🔬 Comparativa Grad-CAM vs Oclusión</span><button class="adv-btn" id="btn-cmp" onclick="runComparar()">Ejecutar</button></div>
+            <div class="adv-body" id="out-cmp"></div>
+          </div>
+        </div>
+
+        <!-- PÁGINA: Detección -->
+        <div class="page" id="page-deteccion">
+          <div class="section-title">📍 Mapa de detección (ventana deslizante)</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Desliza una ventana clasificando cada región para localizar la zona más sospechosa.</div>
+          <div style="text-align:center"><button class="adv-btn" id="btn-det" onclick="runDeteccion()">Ejecutar análisis</button></div>
+          <div class="adv-body" id="out-det" style="margin-top:14px"></div>
+        </div>
+
+        <!-- PÁGINA: Incertidumbre -->
+        <div class="page" id="page-incert">
+          <div class="section-title">❓ Mapa de incertidumbre (Monte Carlo Dropout)</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Activa el dropout y repite la inferencia para estimar dónde "duda" el modelo.</div>
+          <div style="text-align:center"><button class="adv-btn" id="btn-inc" onclick="runIncert()">Ejecutar análisis</button></div>
+          <div class="adv-body" id="out-inc" style="margin-top:14px"></div>
+        </div>
+
+        <!-- PÁGINA: Visión -->
+        <div class="page" id="page-vis">
+          <div class="section-title">🎨 Segmentación y color</div>
+          <div class="vis-row">
+            <div class="vis-box"><img id="vis-seg" src=""><div class="vis-cap">Lesión segmentada (contorno)</div></div>
+            <div class="vis-box"><img id="vis-bordes" src=""><div class="vis-cap">Detección de bordes (Canny)</div></div>
+          </div>
+          <div class="vis-row" style="margin-top:14px">
+            <div class="vis-box" style="max-width:480px"><img id="vis-hist" src=""><div class="vis-cap">Histograma de color</div></div>
+          </div>
+          <div class="section-title" style="margin-top:18px">🎨 Colores dominantes</div>
+          <div class="paleta" id="paleta"></div>
+          <div id="vis-fail" style="display:none;font-size:.82rem;color:var(--muted);background:var(--card2);padding:12px;border-radius:12px">No se pudo segmentar una lesión clara — se omiten las visualizaciones.</div>
+        </div>
+
+        <!-- PÁGINA: ABCDE -->
+        <div class="page" id="page-abcde">
+          <div class="section-title">🔬 Análisis morfológico ABCDE</div>
+          <div id="abcde-zone">
+            <div class="abcde-grid" id="abcde-grid"></div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:10px;text-align:center">Criterios calculados por procesamiento de imagen (OpenCV). El diámetro es relativo (px), sin escala física.</div>
+          </div>
+          <div id="abcde-fail" style="display:none;font-size:.82rem;color:var(--muted);background:var(--card2);padding:12px;border-radius:12px">No se pudo segmentar una lesión clara — se omite el análisis ABCDE.</div>
+        </div>
+
+        <!-- PÁGINA: Avanzado -->
+        <div class="page" id="page-avanzado">
+          <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Análisis que ejercitan el modelo de forma intensiva. Cada uno corre bajo demanda (tarda unos segundos en CPU).</div>
+          <div class="adv-block">
+            <div class="adv-head"><span>🛡️ Robustez y confiabilidad (TTA)</span><button class="adv-btn" id="btn-tta" onclick="runTTA()">Ejecutar</button></div>
+            <div class="adv-body" id="out-tta"></div>
+          </div>
+          <div class="adv-block">
+            <div class="adv-head"><span>🎯 Diagnóstico enfocado (recorte a la lesión)</span><button class="adv-btn" id="btn-enf" onclick="runEnfocado()">Ejecutar</button></div>
+            <div class="adv-body" id="out-enf"></div>
+          </div>
+          <div class="adv-block">
+            <div class="adv-head"><span>🌫️ Robustez a ruido</span><button class="adv-btn" id="btn-rui" onclick="runRuido()">Ejecutar</button></div>
+            <div class="adv-body" id="out-rui"></div>
+          </div>
+          <div class="adv-block">
+            <div class="adv-head"><span>🔀 Test de robustez (rotación / brillo)</span><button class="adv-btn" id="btn-rob" onclick="runRobustez()">Ejecutar</button></div>
+            <div class="adv-body" id="out-rob"></div>
+          </div>
+          <div class="adv-block">
+            <div class="adv-head"><span>🎨 Análisis por canal RGB</span><button class="adv-btn" id="btn-can" onclick="runCanales()">Ejecutar</button></div>
+            <div class="adv-body" id="out-can"></div>
+          </div>
+        </div>
+
+        <!-- PÁGINA: Consenso XAI -->
+        <div class="page" id="page-consenso">
+          <div class="section-title">🧭 Consenso de explicabilidad</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Combina Grad-CAM, Saliency, Oclusión e Integrated Gradients (ya calculados) en un solo mapa promedio, y mide cuánto coinciden entre sí — sin cómputo adicional del modelo.</div>
+          <div id="consenso-wait" style="text-align:center;color:var(--muted);font-size:.85rem;padding:20px">Esperando a que terminen de precargarse las 4 técnicas de explicabilidad…</div>
+          <div id="consenso-body" style="display:none">
+            <div class="xai-stage" id="consenso-stage"><canvas id="consenso-canvas" width="380" height="380" style="width:100%;height:100%"></canvas></div>
+            <div class="agree-wrap">
+              <div class="agree-ring">
+                <svg width="150" height="150" viewBox="0 0 150 150">
+                  <circle cx="75" cy="75" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14"/>
+                  <circle id="agree-circle" cx="75" cy="75" r="62" fill="none" stroke="#34d399" stroke-width="14" stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6"/>
+                </svg>
+                <div class="agree-val" id="agree-val">—</div>
+              </div>
+              <div style="font-size:.8rem;color:var(--muted);margin-top:8px">Acuerdo promedio entre las 4 técnicas</div>
+            </div>
+            <div class="consenso-grid" id="consenso-grid"></div>
+            <div class="adv-note" id="consenso-note"></div>
+          </div>
+        </div>
+
+        <!-- PÁGINA: Evolución -->
+        <div class="page" id="page-evolucion">
+          <div class="section-title">📈 Comparador de evolución</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Sube dos fotos de la misma lesión en momentos distintos para evaluar la letra <b>E</b> (Evolución) del ABCDE.</div>
+          <div class="evo-cols">
+            <div class="evo-col">
+              <h4>📷 Antes</h4>
+              <input type="file" id="evo-fi-a" accept="image/*" style="display:none" onchange="onEvoFile('a',this.files[0])">
+              <div class="evo-drop" id="evo-drop-a" onclick="document.getElementById('evo-fi-a').click()">
+                <div id="evo-content-a"><div style="font-size:2rem">🩺</div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
+              </div>
+            </div>
+            <div class="evo-col">
+              <h4>📷 Después</h4>
+              <input type="file" id="evo-fi-b" accept="image/*" style="display:none" onchange="onEvoFile('b',this.files[0])">
+              <div class="evo-drop" id="evo-drop-b" onclick="document.getElementById('evo-fi-b').click()">
+                <div id="evo-content-b"><div style="font-size:2rem">🩺</div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
+              </div>
+            </div>
+          </div>
+          <div id="evo-loading" style="display:none;text-align:center;padding:20px"><div class="mini-spin"></div><div style="font-size:.82rem;color:var(--muted)">Analizando…</div></div>
+          <div class="evo-cmp" id="evo-cmp" style="display:none"></div>
+        </div>
+
+        <!-- PÁGINA: Guía -->
+        <div class="page" id="page-guia">
+          <div class="section-title">📖 Guía de interpretación</div>
+          <div class="guia-item"><b>Regla ABCDE.</b> Criterios clínicos para evaluar lesiones pigmentadas: <b>A</b>simetría, <b>B</b>orde irregular, <b>C</b>olor heterogéneo, <b>D</b>iámetro &gt; 6 mm y <b>E</b>volución. A mayor número de criterios, mayor sospecha de malignidad.</div>
+          <div class="guia-item"><b>Asimetría.</b> Cuánto difiere una mitad de la lesión respecto a la otra. Las benignas tienden a ser simétricas.</div>
+          <div class="guia-item"><b>Borde.</b> Regularidad del contorno (circularidad). Bordes irregulares o dentados son señal de alerta.</div>
+          <div class="guia-item"><b>Color.</b> Variedad cromática dentro de la lesión. Múltiples tonos aumentan la sospecha.</div>
+          <div class="guia-item"><b>Diámetro.</b> Tamaño equivalente de la lesión (en píxeles, valor relativo sin escala física).</div>
+          <div class="guia-item"><b>Grad-CAM.</b> XAI que resalta las regiones que más influyeron en la decisión de la red.</div>
+          <div class="guia-item"><b>Saliency / SmoothGrad.</b> XAI a nivel de píxel: gradientes suavizados que marcan los píxeles más relevantes.</div>
+          <div class="guia-item"><b>Oclusión.</b> XAI que tapa zonas y mide cuánto cae la predicción: las zonas que más la sostienen son las clave.</div>
+          <div class="guia-item"><b>TTA.</b> Promedia varias vistas aumentadas para una predicción más robusta y estimar la incertidumbre.</div>
+          <div class="guia-item"><b>Dataset HAM10000.</b> 10 015 imágenes dermatoscópicas. La herramienta funciona mejor en lesiones similares.</div>
+        </div>
+
+        <div class="warning-box">⚠️ <span>Herramienta académica — no sustituye el diagnóstico de un dermatólogo certificado. Ante cualquier lesión sospechosa, consulte a un profesional de la salud.</span></div>
+        <button class="btn-reset" onclick="reiniciar()">🔄 Analizar otra imagen</button>
+      </div>
+    </div>
+
+    <footer>DermaScan · Percepción Computacional · UPAO 2026<br>Modelo entrenado sobre HAM10000 · AUC ROC 0.9479</footer>
+  </div>
+</div>
+
+<script>
+let ultimoResultado=null, ultimaImagenB64=null;
+const SVGNS='http://www.w3.org/2000/svg';
+const UMBRAL_BASE=0.62;
+
+/* ---------- Navegación ---------- */
+function setPage(p){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+}
+function habilitarNav(on){
+  document.querySelectorAll('#sb-nav .nav-btn').forEach(b=>{
+    if(b.dataset.page==='evolucion')return;   // siempre accesible, no depende del análisis principal
+    b.classList.toggle('sb-disabled',!on);
+  });
+}
+
+/* ---------- Métricas ---------- */
+let metricasCargadas=false;
+async function toggleMetricas(){
+  const p=document.getElementById('panel-metricas');
+  if(p.style.display==='block'){p.style.display='none';return;}
+  p.style.display='block';
+  if(metricasCargadas)return;
+  try{const m=await(await fetch('/metricas')).json();renderMetricas(m);metricasCargadas=true;}
+  catch(e){p.innerHTML='<div style="color:#888">No se pudieron cargar las métricas.</div>';}
+  try{const roc=await(await fetch('/roc')).json();if(roc.roc_b64)document.getElementById('roc-img').src='data:image/png;base64,'+roc.roc_b64;}catch(e){}
+}
+function renderMetricas(m){
+  const g=m.globales;
+  const cards=[['Accuracy',(g.accuracy*100).toFixed(2)+'%'],['AUC ROC',g.auc_roc.toFixed(4)],['F1 Macro',g.f1_macro.toFixed(3)],['Precision',g.precision_macro.toFixed(3)],['Recall',g.recall_macro.toFixed(3)]];
+  document.getElementById('mm-grid').innerHTML=cards.map(c=>'<div class="mm-card"><div class="mm-val">'+c[1]+'</div><div class="mm-key">'+c[0]+'</div></div>').join('');
+  const mc=m.matriz_confusion;
+  document.getElementById('mm-confusion').innerHTML='<tr><th></th><th>Pred. Benigno</th><th>Pred. Maligno</th></tr>'+
+    '<tr><th>Real Benigno</th><td class="mm-vn">'+mc.benignas_ok+'</td><td class="mm-fp">'+mc.falsos_positivos+'</td></tr>'+
+    '<tr><th>Real Maligno</th><td class="mm-fn">'+mc.falsos_negativos+'</td><td class="mm-vp">'+mc.malignas_ok+'</td></tr>';
+  let filas='<tr><th>Clase</th><th>Precision</th><th>Recall</th><th>F1</th><th>Soporte</th></tr>';
+  m.por_clase.forEach(c=>{filas+='<tr><th>'+c.clase+'</th><td>'+c.precision+'</td><td>'+c.recall+'</td><td>'+c.f1+'</td><td>'+c.support+'</td></tr>';});
+  document.getElementById('mm-clases').innerHTML=filas;
+  const b=m.baseline;
+  function barRow(l,v,c){return '<div class="mm-bar-row"><span class="lbl">'+l+'</span><div class="mm-bar"><div style="width:'+(v*100)+'%;background:'+c+'"></div></div><span>'+(v*100).toFixed(1)+'%</span></div>';}
+  document.getElementById('mm-baseline').innerHTML='<div style="font-size:.72rem;color:#889;margin-bottom:4px">Accuracy</div>'+barRow(b.nombre,b.accuracy,'#8aa0bb')+barRow('EfficientNetB4',g.accuracy,'#22d3ee')+
+    '<div style="font-size:.72rem;color:#889;margin:6px 0 4px">F1 Macro</div>'+barRow(b.nombre,b.f1_macro,'#8aa0bb')+barRow('EfficientNetB4',g.f1_macro,'#34d399');
+}
+
+/* ---------- Carga imagen ---------- */
+function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag-over')}
+function onDragLeave(e){document.getElementById('dropZone').classList.remove('drag-over')}
+function onDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))onFileSelected(f)}
+let imagenPendienteB64=null;
+function onFileSelected(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    ultimaImagenB64=e.target.result.split(',')[1];
+    document.getElementById('preview-img').src=e.target.result;
+    document.getElementById('preview-wrap').style.display='block';
+    document.getElementById('dropZone').style.display='none';
+    document.getElementById('resultado').style.display='none';
+    document.getElementById('panel-metricas').style.display='none';
+    document.getElementById('quality-banner').classList.remove('show');
+    habilitarNav(false);
+    evaluarCalidadYcontinuar(ultimaImagenB64);
+  };
+  reader.readAsDataURL(file);
+}
+async function analizar(b64){
+  document.getElementById('loading').style.display='block';
+  document.getElementById('resultado').style.display='none';
+  try{
+    const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})});
+    const d=await resp.json();ultimoResultado=d;mostrarResultado(d);
+  }catch(err){document.getElementById('loading').style.display='none';alert('Error al conectar con el servidor: '+err);}
+}
+
+/* ---------- Chequeo de calidad / detección de piel (bloqueante si no es piel) ---------- */
+async function evaluarCalidadYcontinuar(b64){
+  const banner=document.getElementById('quality-banner');
+  banner.style.background='';banner.style.border='';banner.style.color='';
+  let d=null;
+  try{
+    d=await(await fetch('/calidad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})})).json();
+  }catch(e){/* si falla el chequeo, no bloquea el flujo */}
+
+  if(d&&!d.error&&d.es_piel===false){
+    imagenPendienteB64=b64;
+    banner.className='show danger';
+    banner.innerHTML=(d.advertencias||[]).map(a=>'<div class="qb-row">⚠️ '+a+'</div>').join('')+
+      '<div class="qb-actions">'+
+      '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Sí, continuar de todas formas</button>'+
+      '<button class="qb-btn qb-btn-no" onclick="confirmarAnalisis(false)">No, cancelar</button>'+
+      '</div>';
+    return;   // se detiene aquí hasta que el usuario decida
+  }
+
+  mostrarBannerCalidadInfo(d);
+  analizar(b64);
+}
+function mostrarBannerCalidadInfo(d){
+  const banner=document.getElementById('quality-banner');
+  if(!d||d.error){banner.classList.remove('show');return;}
+  if(!d.advertencias||d.advertencias.length===0){
+    banner.className='show';
+    banner.style.background='rgba(52,211,153,.08)';banner.style.border='1px solid rgba(52,211,153,.25)';banner.style.color='#34d399';
+    banner.innerHTML='<div class="qb-row">✅ Imagen válida — confianza de piel real: '+Math.round((d.es_piel_confianza||0)*100)+'%</div>';
+    return;
+  }
+  banner.className='show warn';
+  banner.style.background='';banner.style.border='';banner.style.color='';
+  banner.innerHTML=d.advertencias.map(a=>'<div class="qb-row">⚠️ '+a+'</div>').join('');
+}
+function confirmarAnalisis(continuar){
+  const banner=document.getElementById('quality-banner');
+  if(!continuar){
+    banner.classList.remove('show');
+    imagenPendienteB64=null;
+    reiniciar();
+    return;
+  }
+  banner.className='show danger';
+  banner.innerHTML='<div class="qb-row">⚠️ Continuando de todas formas — esta imagen no parece piel humana, el resultado puede no ser confiable.</div>';
+  analizar(imagenPendienteB64);
+  imagenPendienteB64=null;
+}
+
+/* ---------- Precarga en segundo plano ---------- */
+function marcarListo(dotId){const el=document.getElementById(dotId);if(el)el.classList.add('show');}
+async function precargarAvanzado(b64){
+  const tareas=[
+    {url:'/saliency',   cache:()=>xaiCache,      key:'saliency',   dots:['xd-saliency']},
+    {url:'/oclusion',   cache:()=>xaiCache,      key:'oclusion',   dots:['xd-oclusion']},
+    {url:'/integrated', cache:()=>xaiCache,      key:'integrated', dots:['xd-integrated']},
+    {url:'/deteccion',  cache:()=>advCache,      key:'det',        dots:['dot-deteccion']},
+    {url:'/incertidumbre', cache:()=>advCache,   key:'inc',        dots:['dot-incert']},
+  ];
+  const bar=document.getElementById('preload-bar'),cnt=document.getElementById('preload-count');
+  bar.classList.add('show');let hechos=0;
+  cnt.textContent='0/'+tareas.length;
+
+  await Promise.allSettled(tareas.map(async t=>{
+    try{
+      const d=await(await fetch(t.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})})).json();
+      if(d.overlay_b64){
+        if(t.key==='saliency'||t.key==='oclusion'||t.key==='integrated'){
+          xaiCache[t.key]='data:image/png;base64,'+d.overlay_b64;
+          registrarHeat(t.key,d.heatmap_b64);
+        }else if(t.key==='det'){
+          advCache.det='<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.overlay_b64+'"><div class="cap">Mapa de malignidad (recuadro = zona más sospechosa)</div></div>'+
+            '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Mapa de calor de detección</div></div></div>'+
+            '<div class="adv-note">Se deslizó una ventana clasificando '+d.n_ventanas+' regiones. La zona más sospechosa alcanzó <b>'+(d.prob_max*100).toFixed(1)+'%</b> de probabilidad de malignidad.</div>';
+        }else if(t.key==='inc'){
+          const inc=d.incertidumbre;const col=inc<0.05?'#34d399':(inc<0.12?'#fbbf24':'#f87171');
+          advCache.inc='<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.overlay_b64+'"><div class="cap">Mapa de incertidumbre (zonas brillantes = más duda)</div></div>'+
+            '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Desviación de los mapas Grad-CAM</div></div></div>'+
+            '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66;margin-top:10px">'+d.nivel+': <b style="color:'+col+'">±'+(inc*100).toFixed(1)+'%</b>'+
+            '<div style="font-size:.78rem;color:var(--muted);margin-top:4px">'+d.n_pasadas+' pasadas con dropout activo. Probabilidad media: '+(d.prob_media*100).toFixed(1)+'%. A mayor dispersión, menos seguro está el modelo.</div></div>';
+        }
+        t.dots.forEach(marcarListo);
+      }
+    }catch(e){/* si falla, queda para calcularse bajo demanda al hacer clic */}
+    hechos++;cnt.textContent=hechos+'/'+tareas.length;
+  }));
+  bar.classList.remove('show');
+}
+
+/* ---------- Visor XAI (una técnica por vez) ---------- */
+const xaiCache={};
+const xaiHeatCache={};   // heatmaps puros (base64 sin overlay), usados por el Consenso
+function registrarHeat(tech,heatB64){
+  if(!heatB64)return;
+  xaiHeatCache[tech]=heatB64;
+  if(['gradcam','saliency','oclusion','integrated'].every(t=>xaiHeatCache[t])) computeConsenso();
+}
+const XAI_INFO={
+  gradcam:'Grad-CAM: resalta (rojo) las regiones que más activaron la decisión, a nivel de mapa convolucional.',
+  saliency:'Saliency / SmoothGrad: relevancia a nivel de píxel (gradiente de la salida respecto a la entrada, suavizado con ruido).',
+  oclusion:'Oclusión: tapa regiones y mide cuánto cae la predicción; las zonas brillantes son las que más sostienen la decisión.',
+  integrated:'Integrated Gradients: atribución integrando gradientes desde una imagen base (negro), cumple axiomas de completitud.'
+};
+const XAI_URL={saliency:'/saliency',oclusion:'/oclusion',integrated:'/integrated'};
+async function setXai(tech){
+  ['gradcam','saliency','oclusion','integrated'].forEach(t=>document.getElementById('xb-'+t).classList.toggle('active',t===tech));
+  document.getElementById('xai-note').textContent=XAI_INFO[tech]||'';
+  const img=document.getElementById('xai-img'),spin=document.getElementById('xai-spin');
+  if(xaiCache[tech]){img.src=xaiCache[tech];return;}
+  if(tech==='gradcam'){
+    const gc=ultimoResultado&&ultimoResultado.gradcam;
+    if(gc&&gc.overlay_b64){xaiCache.gradcam='data:image/png;base64,'+gc.overlay_b64;img.src=xaiCache.gradcam;document.getElementById('xd-gradcam').classList.add('show');registrarHeat('gradcam',gc.heatmap_b64);}
+    else{img.removeAttribute('src');document.getElementById('xai-note').textContent='No se pudo generar Grad-CAM para esta imagen.';}
+    return;
+  }
+  spin.classList.add('show');img.removeAttribute('src');
+  document.getElementById('xai-note').textContent='Calculando '+tech+'... puede tardar ~15-30s en CPU (no cierres la pestaña).';
+  try{
+    const d=await(await fetch(XAI_URL[tech],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:ultimaImagenB64})})).json();
+    if(d.overlay_b64){xaiCache[tech]='data:image/png;base64,'+d.overlay_b64;img.src=xaiCache[tech];document.getElementById('xai-note').textContent=XAI_INFO[tech]||'';document.getElementById('xd-'+tech).classList.add('show');registrarHeat(tech,d.heatmap_b64);}
+    else{document.getElementById('xai-note').textContent='Error: '+(d.error||'no disponible');}
+  }catch(e){document.getElementById('xai-note').textContent='Error de conexión: '+e;}
+  spin.classList.remove('show');
+}
+
+/* ---------- Explorador de umbral ---------- */
+function setThreshold(v){
+  const thr=v/100;
+  document.getElementById('thr-val').textContent=thr.toFixed(2);
+  if(!ultimoResultado)return;
+  const p=ultimoResultado.prob_raw;
+  const mal=p>=thr;
+  const el=document.getElementById('thr-verdict');
+  el.textContent=mal?'MALIGNO':'BENIGNO';
+  el.style.color=mal?'var(--danger)':'var(--success)';
+  let nota;
+  if(thr<UMBRAL_BASE) nota='Umbral más bajo → mayor sensibilidad (detecta más malignos, pero más falsos positivos).';
+  else if(thr>UMBRAL_BASE) nota='Umbral más alto → mayor especificidad (menos falsos positivos, pero puede escapar algún maligno).';
+  else nota='Umbral óptimo del modelo (0.62), equilibra sensibilidad y especificidad.';
+  document.getElementById('thr-note').textContent=nota+' Probabilidad de esta imagen: '+(p*100).toFixed(1)+'%.';
+}
+
+/* ---------- Dona ---------- */
+function renderDonut(prob){
+  const svg=document.getElementById('donut');svg.innerHTML='';
+  const cx=110,cy=110,r=78,circ=2*Math.PI*r;
+  function arc(frac,offset,color){
+    const c=document.createElementNS(SVGNS,'circle');
+    c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+    c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width',22);
+    c.setAttribute('stroke-dasharray',circ);c.setAttribute('stroke-dashoffset',circ);
+    c.setAttribute('transform','rotate('+(offset*360-90)+' '+cx+' '+cy+')');
+    c.style.transition='stroke-dashoffset 1s ease';svg.appendChild(c);
+    setTimeout(()=>{c.setAttribute('stroke-dashoffset',circ*(1-frac));},80);
+  }
+  const bg=document.createElementNS(SVGNS,'circle');
+  bg.setAttribute('cx',cx);bg.setAttribute('cy',cy);bg.setAttribute('r',r);bg.setAttribute('fill','none');
+  bg.setAttribute('stroke','rgba(255,255,255,.06)');bg.setAttribute('stroke-width',22);svg.appendChild(bg);
+  arc(1-prob,0,'#34d399');arc(prob,1-prob,'#f87171');
+  const dom=prob>=0.5?'Maligno':'Benigno';const domPct=(prob>=0.5?prob:1-prob)*100;
+  const t1=document.createElementNS(SVGNS,'text');t1.setAttribute('x',cx);t1.setAttribute('y',cy-4);t1.setAttribute('text-anchor','middle');
+  t1.setAttribute('fill',prob>=0.5?'#f87171':'#34d399');t1.setAttribute('font-size','30');t1.setAttribute('font-weight','800');
+  t1.textContent=domPct.toFixed(0)+'%';svg.appendChild(t1);
+  const t2=document.createElementNS(SVGNS,'text');t2.setAttribute('x',cx);t2.setAttribute('y',cy+20);t2.setAttribute('text-anchor','middle');
+  t2.setAttribute('fill','#8aa0bb');t2.setAttribute('font-size','13');t2.textContent=dom;svg.appendChild(t2);
+}
+
+/* ---------- Radar ---------- */
+function renderRadar(abcde,color){
+  const svg=document.getElementById('radar');svg.innerHTML='';
+  const cx=130,cy=120,R=82;
+  const ejes=[['asimetria','A',-90],['borde','B',0],['color','C',90],['diametro','D',180]];
+  function pt(ang,rad){const a=ang*Math.PI/180;return [cx+rad*Math.cos(a),cy+rad*Math.sin(a)];}
+  [0.25,0.5,0.75,1].forEach(f=>{const pts=ejes.map(e=>pt(e[2],R*f).join(',')).join(' ');
+    const poly=document.createElementNS(SVGNS,'polygon');poly.setAttribute('points',pts);poly.setAttribute('fill','none');poly.setAttribute('stroke','rgba(255,255,255,.08)');svg.appendChild(poly);});
+  ejes.forEach(e=>{const [x,y]=pt(e[2],R);
+    const ln=document.createElementNS(SVGNS,'line');ln.setAttribute('x1',cx);ln.setAttribute('y1',cy);ln.setAttribute('x2',x);ln.setAttribute('y2',y);ln.setAttribute('stroke','rgba(255,255,255,.1)');svg.appendChild(ln);
+    const [lx,ly]=pt(e[2],R+16);const tx=document.createElementNS(SVGNS,'text');tx.setAttribute('x',lx);tx.setAttribute('y',ly+4);tx.setAttribute('text-anchor','middle');tx.setAttribute('fill','#8aa0bb');tx.setAttribute('font-size','13');tx.setAttribute('font-weight','700');tx.textContent=e[1];svg.appendChild(tx);});
+  const poly=document.createElementNS(SVGNS,'polygon');poly.setAttribute('points',ejes.map(()=>cx+','+cy).join(' '));
+  poly.setAttribute('fill',color+'55');poly.setAttribute('stroke',color);poly.setAttribute('stroke-width',2);poly.style.transition='all .9s ease';svg.appendChild(poly);
+  setTimeout(()=>{const pts=ejes.map(e=>{const s=abcde&&abcde[e[0]]?abcde[e[0]].score:0;return pt(e[2],R*s).join(',');}).join(' ');poly.setAttribute('points',pts);},120);
+}
+
+function mostrarResultado(d){
+  document.getElementById('loading').style.display='none';
+  const esMaligno=d.clase==='Maligno';const colorV=esMaligno?'#f87171':'#34d399';
+  habilitarNav(true);setPage('diag');resetAvanzado();
+
+  const box=document.getElementById('verdict-box');
+  box.className='verdict '+(esMaligno?'maligno':'benigno');
+  document.getElementById('verdict-icon').textContent=esMaligno?'⚠️':'✅';
+  document.getElementById('verdict-label').textContent=d.clase.toUpperCase();
+  document.getElementById('verdict-desc').textContent=esMaligno?'Se detectaron características asociadas a lesiones potencialmente malignas.':'No se detectaron patrones malignos evidentes.';
+
+  const pct=parseFloat(d.confianza_pct);const bar=document.getElementById('conf-bar');
+  bar.className='conf-bar-fill '+(esMaligno?'maligno-fill':'benigno-fill');
+  setTimeout(()=>{bar.style.width=pct+'%'},80);
+  document.getElementById('conf-value').textContent=pct.toFixed(1)+'%';
+  document.getElementById('m-conf').textContent=d.confianza_pct;
+  document.getElementById('m-lat').textContent=d.latencia_ms+' ms';
+
+  renderDonut(d.prob_raw);renderRadar(d.abcde,colorV);
+
+  const r=d.riesgo,band=document.getElementById('gauge-band');
+  band.textContent=r.banda;band.style.color=r.color;
+  document.getElementById('gauge-rec').textContent=r.recomendacion;
+  const ang=(d.prob_raw*160)-80;
+  setTimeout(()=>{document.getElementById('needle').setAttribute('transform','rotate('+ang+' 130 130)')},120);
+
+  document.getElementById('thr-slider').value=62;setThreshold(62);
+
+  // Visor XAI: arranca en Grad-CAM (ya viene en la respuesta)
+  setXai('gradcam');
+
+  const v=d.visuales;
+  if(v&&v.segmentacion_b64){
+    document.getElementById('vis-seg').src='data:image/png;base64,'+v.segmentacion_b64;
+    document.getElementById('vis-hist').src='data:image/png;base64,'+v.histograma_b64;
+    if(v.bordes_b64)document.getElementById('vis-bordes').src='data:image/png;base64,'+v.bordes_b64;
+    const pal=document.getElementById('paleta');pal.innerHTML='';
+    (v.paleta||[]).forEach(c=>{const d2=document.createElement('div');d2.className='swatch';d2.innerHTML='<div class="col" style="background:'+c.hex+'"></div>'+c.pct+'%';pal.appendChild(d2);});
+    document.getElementById('vis-fail').style.display='none';
+  }else{document.getElementById('vis-fail').style.display='block';}
+
+  const grid=document.getElementById('abcde-grid');grid.innerHTML='';
+  if(d.abcde){
+    document.getElementById('abcde-zone').style.display='block';document.getElementById('abcde-fail').style.display='none';
+    const colores={Bajo:'#34d399',Medio:'#fbbf24',Alto:'#f87171'};
+    ['asimetria','borde','color','diametro'].forEach(k=>{const a=d.abcde[k];const card=document.createElement('div');card.className='abcde-card';
+      card.innerHTML='<div class="abcde-head"><span class="abcde-name">'+a.nombre+'</span><span class="abcde-tag tag-'+a.etiqueta+'">'+a.etiqueta+'</span></div><div class="abcde-track"><div class="abcde-fill" style="background:'+colores[a.etiqueta]+'"></div></div><div class="abcde-val">'+a.valor+'</div>';
+      grid.appendChild(card);const fill=card.querySelector('.abcde-fill');setTimeout(()=>{fill.style.width=(a.score*100)+'%'},150);});
+  }else{document.getElementById('abcde-zone').style.display='none';document.getElementById('abcde-fail').style.display='block';}
+
+  const res=document.getElementById('resultado');res.style.display='block';res.style.animation='none';void res.offsetWidth;res.style.animation='slideUp .5s ease';
+
+  // Precargar en segundo plano las técnicas pesadas (sin bloquear la interacción)
+  precargarAvanzado(ultimaImagenB64);
+}
+
+function reiniciar(){
+  document.getElementById('dropZone').style.display='block';
+  document.getElementById('preview-wrap').style.display='none';
+  document.getElementById('resultado').style.display='none';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('fi').value='';
+  document.getElementById('conf-bar').style.width='0%';
+  document.getElementById('quality-banner').classList.remove('show');
+  ultimoResultado=null;ultimaImagenB64=null;imagenPendienteB64=null;resetAvanzado();habilitarNav(false);
+  document.querySelectorAll('.nav-dot,.sub-dot').forEach(e=>e.classList.remove('show'));
+}
+
+/* ===================== Análisis avanzados ===================== */
+const advCache={};
+function resetAvanzado(){
+  ['tta','rob','can','cmp','det','inc','enf','rui'].forEach(k=>{delete advCache[k];const o=document.getElementById('out-'+k);if(o)o.innerHTML='';});
+  ['gradcam','saliency','oclusion','integrated'].forEach(k=>{delete xaiCache[k];delete xaiHeatCache[k];});
+  document.getElementById('consenso-wait').style.display='block';
+  document.getElementById('consenso-body').style.display='none';
+}
+function barChart(filas){return '<div class="bar-chart">'+filas.map(f=>'<div class="bc-row"><span class="bc-lbl">'+f.lbl+'</span><div class="bc-track"><div class="bc-fill" style="width:0%;background:'+f.col+'" data-w="'+(f.val*100)+'"></div></div><span class="bc-val">'+f.txt+'</span></div>').join('')+'</div>';}
+function animarBarras(cont){cont.querySelectorAll('.bc-fill').forEach(b=>{setTimeout(()=>{b.style.width=b.dataset.w+'%';},60);});}
+function colorProb(p){return p>=0.62?'#f87171':(p>=0.3?'#fbbf24':'#34d399');}
+async function advFetch(boton,salida,clave,url,render){
+  if(!ultimaImagenB64)return;
+  const out=document.getElementById(salida);
+  if(advCache[clave]){out.innerHTML=advCache[clave];animarBarras(out);return;}
+  const btn=document.getElementById(boton);const txt=btn.textContent;btn.disabled=true;btn.textContent='...';
+  out.innerHTML='<div class="mini-spin"></div>';
+  try{
+    const d=await(await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:ultimaImagenB64})})).json();
+    if(d.error){out.innerHTML='<div class="adv-note">Error: '+d.error+'</div>';}
+    else{const html=render(d);advCache[clave]=html;out.innerHTML=html;animarBarras(out);}
+  }catch(e){out.innerHTML='<div class="adv-note">Error de conexión: '+e+'</div>';}
+  btn.disabled=false;btn.textContent=txt;
+}
+
+function runTTA(){advFetch('btn-tta','out-tta','tta','/tta',d=>{
+  const inc=d.incertidumbre;let nivel,col,exp;
+  if(inc<0.10){nivel='Confiable';col='#34d399';exp='Las 8 vistas coinciden: el modelo es estable para esta imagen.';}
+  else if(inc<0.20){nivel='Moderada';col='#fbbf24';exp='Hay algo de variación entre vistas; tomar el resultado con cierta cautela.';}
+  else{nivel='Dudosa';col='#f87171';exp='Las vistas discrepan bastante: el modelo no está seguro.';}
+  const filas=d.probs.map((p,i)=>({lbl:'Vista '+(i+1),val:p,col:colorProb(p),txt:(p*100).toFixed(0)+'%'}));
+  return '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66">Confiabilidad: <b style="color:'+col+'">'+nivel+'</b><div style="font-size:.78rem;color:var(--muted);margin-top:4px">'+exp+'</div></div>'+
+    '<div class="adv-stats"><div class="adv-stat"><div class="v">'+(d.prob_media*100).toFixed(1)+'%</div><div class="k">Prob media</div></div><div class="adv-stat"><div class="v">±'+(d.incertidumbre*100).toFixed(1)+'%</div><div class="k">Incertid.</div></div><div class="adv-stat"><div class="v">'+(d.prob_min*100).toFixed(0)+'–'+(d.prob_max*100).toFixed(0)+'%</div><div class="k">Rango</div></div></div>'+
+    '<div style="font-size:.76rem;color:var(--muted);margin:12px 0 4px">Probabilidad de malignidad por vista aumentada:</div>'+barChart(filas);
+});}
+
+function runDeteccion(){advFetch('btn-det','out-det','det','/deteccion',d=>{
+  return '<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.overlay_b64+'"><div class="cap">Mapa de malignidad (recuadro = zona más sospechosa)</div></div>'+
+    '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Mapa de calor de detección</div></div></div>'+
+    '<div class="adv-note">Se deslizó una ventana clasificando '+d.n_ventanas+' regiones. La zona más sospechosa alcanzó <b>'+(d.prob_max*100).toFixed(1)+'%</b> de probabilidad de malignidad.</div>';
+});}
+
+function runRobustez(){advFetch('btn-rob','out-rob','rob','/robustez',d=>{
+  const fr=d.rotaciones.map(r=>({lbl:r.ang+'°',val:r.prob,col:colorProb(r.prob),txt:(r.prob*100).toFixed(0)+'%'}));
+  const fb=d.brillos.map(b=>({lbl:'×'+b.factor,val:b.prob,col:colorProb(b.prob),txt:(b.prob*100).toFixed(0)+'%'}));
+  const est=d.estabilidad;const ecol=est>=0.9?'#34d399':(est>=0.8?'#fbbf24':'#f87171');
+  return '<div class="reli" style="background:'+ecol+'22;border:1px solid '+ecol+'66">Estabilidad: <b style="color:'+ecol+'">'+(est*100).toFixed(1)+'%</b><div style="font-size:.78rem;color:var(--muted);margin-top:4px">Qué tan constante es la predicción ante rotaciones y brillo (100% = idéntica siempre).</div></div>'+
+    '<div style="font-size:.76rem;color:var(--muted);margin:8px 0 4px">Según rotación:</div>'+barChart(fr)+'<div style="font-size:.76rem;color:var(--muted);margin:10px 0 4px">Según brillo:</div>'+barChart(fb);
+});}
+
+function runCanales(){advFetch('btn-can','out-can','can','/canales',d=>{
+  const filas=d.canales.map(c=>({lbl:c.nombre,val:c.prob,col:colorProb(c.prob),txt:(c.prob*100).toFixed(0)+'%'}));
+  const base=d.prob_base;let mejor=null,dif=9;
+  d.canales.forEach(c=>{if(c.nombre!=='Original'){const dd=Math.abs(c.prob-base);if(dd<dif){dif=dd;mejor=c.nombre;}}});
+  return barChart(filas)+'<div class="adv-note">El modelo decide muy parecido al original cuando se conserva <b>'+(mejor||'—')+'</b>, lo que sugiere que ese canal aporta la información más relevante para esta lesión.</div>';
+});}
+
+function runComparar(){advFetch('btn-cmp','out-cmp','cmp','/comparar',d=>{
+  const ac=d.acuerdo_pct;const col=ac>=60?'#34d399':(ac>=30?'#fbbf24':'#f87171');
+  return '<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.gradcam_b64+'"><div class="cap">Grad-CAM (gradientes)</div></div><div class="cmp-box"><img src="data:image/png;base64,'+d.oclusion_b64+'"><div class="cap">Oclusión (perturbación)</div></div></div>'+
+    '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66;margin-top:10px">Acuerdo entre técnicas: <b style="color:'+col+'">'+ac+'%</b><div style="font-size:.78rem;color:var(--muted);margin-top:4px">'+d.interpretacion+'</div></div>';
+});}
+
+function runIncert(){advFetch('btn-inc','out-inc','inc','/incertidumbre',d=>{
+  const inc=d.incertidumbre;const col=inc<0.05?'#34d399':(inc<0.12?'#fbbf24':'#f87171');
+  return '<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.overlay_b64+'"><div class="cap">Mapa de incertidumbre (zonas brillantes = más duda)</div></div>'+
+    '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Desviación de los mapas Grad-CAM</div></div></div>'+
+    '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66;margin-top:10px">'+d.nivel+': <b style="color:'+col+'">±'+(inc*100).toFixed(1)+'%</b>'+
+    '<div style="font-size:.78rem;color:var(--muted);margin-top:4px">'+d.n_pasadas+' pasadas con dropout activo. Probabilidad media: '+(d.prob_media*100).toFixed(1)+'%. A mayor dispersión, menos seguro está el modelo.</div></div>';
+});}
+
+function runEnfocado(){advFetch('btn-enf','out-enf','enf','/enfocado',d=>{
+  const col=d.coincide?'#34d399':'#fbbf24';
+  return '<div style="text-align:center"><img src="data:image/png;base64,'+d.recorte_b64+'" style="max-width:240px;border-radius:12px;border:1px solid var(--line)"><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Lesión recortada y reanalizada</div></div>'+
+    '<div class="adv-stats" style="margin-top:12px"><div class="adv-stat"><div class="v">'+(d.prob_global*100).toFixed(1)+'%</div><div class="k">Global · '+d.clase_global+'</div></div>'+
+    '<div class="adv-stat"><div class="v">'+(d.prob_enfocado*100).toFixed(1)+'%</div><div class="k">Enfocado · '+d.clase_enfocado+'</div></div></div>'+
+    '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66;margin-top:10px"><div style="font-size:.82rem;color:var(--muted)">'+d.interpretacion+'</div></div>';
+});}
+
+function runRuido(){advFetch('btn-rui','out-rui','rui','/ruido',d=>{
+  const filas=d.niveles.map(n=>({lbl:'σ='+n.sigma,val:n.prob,col:colorProb(n.prob),txt:(n.prob*100).toFixed(0)+'%'}));
+  const col=d.estable?'#34d399':'#f87171';
+  return '<div class="reli" style="background:'+col+'22;border:1px solid '+col+'66">'+(d.estable?'Robusto al ruido':'Sensible al ruido')+
+    ': <b style="color:'+col+'">caída '+(d.caida_total*100).toFixed(1)+'%</b><div style="font-size:.78rem;color:var(--muted);margin-top:4px">Cuánto cambia la probabilidad al añadir ruido gaussiano creciente.</div></div>'+
+    '<div style="font-size:.76rem;color:var(--muted);margin:8px 0 4px">Probabilidad según nivel de ruido:</div>'+barChart(filas);
+});}
+
+/* ===================== Consenso XAI (100% en el navegador) ===================== */
+function loadImg(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src;});}
+function heatColorJS(v){
+  const stops=[[0,0,0,255],[0.25,0,255,255],[0.5,0,255,0],[0.75,255,255,0],[1,255,0,0]];
+  for(let i=0;i<stops.length-1;i++){
+    const [p0,r0,g0,b0]=stops[i],[p1,r1,g1,b1]=stops[i+1];
+    if(v>=p0&&v<=p1){const t=(v-p0)/((p1-p0)||1);return [r0+(r1-r0)*t,g0+(g1-g0)*t,b0+(b1-b0)*t];}
+  }
+  return [255,0,0];
+}
+function downsample(arr,W,H,grid){
+  const bw=W/grid,bh=H/grid;const out=new Float32Array(grid*grid);
+  for(let by=0;by<grid;by++)for(let bx=0;bx<grid;bx++){
+    let sum=0,cnt=0;
+    const x0=Math.floor(bx*bw),x1=Math.floor((bx+1)*bw),y0=Math.floor(by*bh),y1=Math.floor((by+1)*bh);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){sum+=arr[y*W+x];cnt++;}
+    out[by*grid+bx]=cnt?sum/cnt:0;
+  }
+  return out;
+}
+function pearson(a,b){
+  const n=a.length;let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
+  let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){const xa=a[i]-ma,xb=b[i]-mb;num+=xa*xb;da+=xa*xa;db+=xb*xb;}
+  const denom=Math.sqrt(da*db);return denom>0?num/denom:0;
+}
+
+async function computeConsenso(){
+  try{
+    const techs=['gradcam','saliency','oclusion','integrated'];
+    const nombres={gradcam:'Grad-CAM',saliency:'Saliency',oclusion:'Oclusión',integrated:'Integrated Grad.'};
+    const imgs=await Promise.all(techs.map(t=>loadImg('data:image/png;base64,'+xaiHeatCache[t])));
+    const origImg=await loadImg(document.getElementById('preview-img').src);
+    const W=380,H=380;
+    const off=document.createElement('canvas');off.width=W;off.height=H;
+    const octx=off.getContext('2d');
+    const lumArrays=imgs.map(im=>{
+      octx.clearRect(0,0,W,H);octx.drawImage(im,0,0,W,H);
+      const data=octx.getImageData(0,0,W,H).data;
+      const lum=new Float32Array(W*H);
+      for(let i=0;i<W*H;i++)lum[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];
+      return lum;
+    });
+    const avg=new Float32Array(W*H);
+    for(let i=0;i<W*H;i++)avg[i]=(lumArrays[0][i]+lumArrays[1][i]+lumArrays[2][i]+lumArrays[3][i])/4;
+    let mn=Infinity,mx=-Infinity;
+    for(let i=0;i<avg.length;i++){if(avg[i]<mn)mn=avg[i];if(avg[i]>mx)mx=avg[i];}
+    const rng=(mx-mn)||1;
+
+    const canvas=document.getElementById('consenso-canvas');
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(origImg,0,0,W,H);
+    const heatData=ctx.createImageData(W,H);
+    for(let i=0;i<W*H;i++){
+      const v=(avg[i]-mn)/rng;
+      const [r,g,b]=heatColorJS(v);
+      heatData.data[i*4]=r;heatData.data[i*4+1]=g;heatData.data[i*4+2]=b;heatData.data[i*4+3]=Math.round(255*0.45);
+    }
+    const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+    tmp.getContext('2d').putImageData(heatData,0,0);
+    ctx.drawImage(tmp,0,0);
+
+    const grid=20;
+    const blocks=lumArrays.map(a=>downsample(a,W,H,grid));
+    let sumCorr=0,pairs=0;
+    for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){sumCorr+=pearson(blocks[i],blocks[j]);pairs++;}
+    const acuerdo=Math.max(0,sumCorr/pairs)*100;
+
+    document.getElementById('consenso-wait').style.display='none';
+    document.getElementById('consenso-body').style.display='block';
+    const circ=document.getElementById('agree-circle');
+    const total=2*Math.PI*62;
+    circ.setAttribute('stroke-dasharray',total);
+    circ.setAttribute('stroke',acuerdo>=60?'#34d399':(acuerdo>=30?'#fbbf24':'#f87171'));
+    setTimeout(()=>{circ.setAttribute('stroke-dashoffset',total*(1-acuerdo/100));},100);
+    document.getElementById('agree-val').textContent=acuerdo.toFixed(0)+'%';
+
+    document.getElementById('consenso-grid').innerHTML=techs.map(t=>
+      '<div class="consenso-thumb"><img src="data:image/png;base64,'+xaiHeatCache[t]+'"><div class="nm">'+nombres[t]+' <span class="ck">✓</span></div></div>').join('');
+
+    let interp;
+    if(acuerdo>=60) interp='Alto acuerdo entre las 4 técnicas: la explicación es consistente y confiable.';
+    else if(acuerdo>=30) interp='Acuerdo parcial: las técnicas coinciden en parte de la región relevante.';
+    else interp='Bajo acuerdo entre técnicas: interpretar la explicación con cautela.';
+    document.getElementById('consenso-note').textContent=interp;
+    document.getElementById('dot-consenso').classList.add('show');
+  }catch(e){console.error('Consenso error',e);}
+}
+
+/* ===================== Comparador de evolución ===================== */
+let evoData={a:null,b:null};
+function onEvoFile(slot,file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    document.getElementById('evo-content-'+slot).innerHTML='<img src="'+e.target.result+'">';
+    document.getElementById('evo-loading').style.display='block';
+    document.getElementById('evo-cmp').style.display='none';
+    try{
+      const b64=e.target.result.split(',')[1];
+      const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})});
+      const d=await resp.json();
+      evoData[slot]={img:e.target.result,resultado:d};
+    }catch(err){alert('Error analizando imagen: '+err);}
+    document.getElementById('evo-loading').style.display='none';
+    if(evoData.a&&evoData.b) renderEvoComparacion();
+  };
+  reader.readAsDataURL(file);
+}
+function renderEvoComparacion(){
+  const a=evoData.a.resultado,b=evoData.b.resultado;
+  const pa=a.prob_raw,pb=b.prob_raw,delta=pb-pa;
+  const flecha=delta>0.02?'⬆️':(delta<-0.02?'⬇️':'➡️');
+  const dc=delta>0.02?'#f87171':(delta<-0.02?'#34d399':'#8aa0bb');
+  let html='';
+  html+='<div class="evo-row"><span class="lbl">Diagnóstico</span><div class="vals">'+a.clase+' <span class="evo-arrow">→</span> '+b.clase+'</div></div>';
+  html+='<div class="evo-row"><span class="lbl">Probabilidad</span><div class="vals">'+(pa*100).toFixed(1)+'% '+flecha+' '+(pb*100).toFixed(1)+'% <span class="evo-delta" style="background:'+dc+'22;color:'+dc+'">'+(delta>=0?'+':'')+(delta*100).toFixed(1)+' pp</span></div></div>';
+  html+='<div class="evo-row"><span class="lbl">Riesgo</span><div class="vals">'+a.riesgo.banda+' <span class="evo-arrow">→</span> '+b.riesgo.banda+'</div></div>';
+  if(a.abcde&&b.abcde){
+    ['asimetria','borde','color','diametro'].forEach(k=>{
+      const ca=a.abcde[k],cb=b.abcde[k];if(!ca||!cb)return;
+      const d2=cb.score-ca.score;const col=d2>0.05?'#f87171':(d2<-0.05?'#34d399':'#8aa0bb');
+      html+='<div class="evo-row"><span class="lbl">'+ca.nombre+'</span><div class="vals">'+(ca.score*100).toFixed(0)+'% → '+(cb.score*100).toFixed(0)+'% <span class="evo-delta" style="background:'+col+'22;color:'+col+'">'+(d2>=0?'+':'')+(d2*100).toFixed(0)+' pp</span></div></div>';
+    });
+  }
+  let interp;
+  if(delta>0.05) interp='⚠️ La probabilidad de malignidad aumentó de forma notable — se recomienda evaluación profesional cuanto antes.';
+  else if(delta<-0.05) interp='✅ La probabilidad de malignidad disminuyó respecto a la primera imagen.';
+  else interp='No se observan cambios significativos entre ambas imágenes.';
+  html+='<div class="adv-note">'+interp+'</div>';
+  document.getElementById('evo-cmp').innerHTML=html;
+  document.getElementById('evo-cmp').style.display='block';
+}
+</script>
+</body>
+</html>
