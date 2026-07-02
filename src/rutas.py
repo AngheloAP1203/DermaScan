@@ -2,7 +2,7 @@
 import time
 from flask import Blueprint, request, jsonify, render_template, Response
 
-from .config import UMBRAL, NOMBRE_MODELO, ACCURACY
+from .config import UMBRAL, NOMBRE_MODELO, ACCURACY, MODOS, MARGEN_DUDA
 from .modelo import inferir
 from .preprocesamiento import decodificar, preprocesar
 from .gradcam import generar_gradcam
@@ -129,23 +129,51 @@ def calidad_endpoint():
 
 @bp.route('/analizar', methods=['POST'])
 def analizar():
-    datos   = request.get_json()
-    img_rgb = decodificar(datos['imagen'])
-    tensor  = preprocesar(img_rgb)
+    datos = request.get_json(silent=True)
+    if not datos or 'imagen' not in datos:
+        return jsonify({'error': 'Solicitud invalida: falta el campo "imagen".'}), 400
+    try:
+        img_rgb = decodificar(datos['imagen'])
+        if img_rgb is None:
+            raise ValueError('imagen no decodificable')
+    except Exception:
+        return jsonify({'error': 'No se pudo decodificar la imagen. Envie una imagen valida en base64.'}), 400
+
+    # Modo de operación: define el umbral de decisión (balanceado o screening).
+    modo   = datos.get('modo', 'balanceado')
+    umbral = MODOS.get(modo, UMBRAL)
+
+    # Barrera de validez: si la imagen no parece piel real, se rechaza el análisis
+    # salvo que el cliente insista de forma explícita con 'forzar'.
+    calidad = evaluar_calidad(img_rgb)
+    if (not datos.get('forzar')) and calidad.get('es_piel') is False:
+        return jsonify({
+            'rechazado': True,
+            'motivo': 'La imagen no parece una foto real de piel humana. '
+                      'El modelo solo es valido sobre imagenes dermatoscopicas o de piel.',
+            'calidad': calidad,
+        })
+
+    tensor = preprocesar(img_rgb)
 
     t0   = time.time()
     prob = float(inferir(tensor)[0][0])
     ms   = round((time.time() - t0) * 1000, 1)
 
-    clase = 'Maligno' if prob >= UMBRAL else 'Benigno'
-    conf  = prob if clase == 'Maligno' else 1 - prob
+    clase  = 'Maligno' if prob >= umbral else 'Benigno'
+    conf   = prob if clase == 'Maligno' else 1 - prob
+    dudoso = abs(prob - umbral) <= MARGEN_DUDA
 
     return jsonify({
         'clase': clase,
         'confianza_pct': f'{conf*100:.1f}%',
         'latencia_ms': ms,
         'prob_raw': round(prob, 4),
-        'riesgo': evaluar_riesgo(prob),
+        'modo': modo,
+        'umbral_usado': umbral,
+        'dudoso': dudoso,
+        'riesgo': evaluar_riesgo(prob, umbral),
+        'calidad': calidad,
         'abcde': analisis_abcde(img_rgb),
         'gradcam': generar_gradcam(tensor, img_rgb),
         'visuales': generar_visuales(img_rgb),

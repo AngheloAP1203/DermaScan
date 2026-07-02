@@ -117,8 +117,26 @@
   .verdict-label{font-size:1.9rem;font-weight:900;letter-spacing:2px}
   .verdict.maligno .verdict-label{color:var(--danger)}.verdict.benigno .verdict-label{color:var(--success)}
   .verdict-desc{font-size:.86rem;color:var(--muted);margin-top:6px;line-height:1.5}
+  .verdict-dudoso{display:none;margin:10px auto 0;max-width:520px;background:rgba(251,191,36,.12);
+    border:1px solid rgba(251,191,36,.45);color:#fbbf24;border-radius:10px;padding:8px 14px;
+    font-size:.8rem;font-weight:600;line-height:1.45}
+  .verdict-dudoso.show{display:block}
+
+  .modo-selector{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 16px;flex-wrap:wrap}
+  .modo-lbl{font-size:.78rem;color:var(--muted)}
+  .modo-group{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .modo-btn{border:none;background:transparent;color:var(--muted);font-size:.78rem;font-weight:600;
+    padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .2s ease;font-family:inherit}
+  .modo-btn.active{background:rgba(34,211,238,.16);color:var(--accent)}
+  .modo-btn:hover:not(.active){color:var(--text)}
+  .modo-hint{width:100%;text-align:center;font-size:.72rem;color:var(--muted);line-height:1.4}
 
   .conf-label{font-size:.84rem;color:var(--muted);margin-bottom:6px}
+  #conf-range{display:none;text-align:center;font-size:.78rem;color:var(--muted);
+    background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    padding:8px 12px;margin:-8px 0 18px;line-height:1.5}
+  #conf-range.show{display:block}
+  #conf-range b{color:var(--accent)}
   .conf-bar-track{background:rgba(255,255,255,.06);border-radius:999px;height:12px;overflow:hidden;margin-bottom:4px}
   .conf-bar-fill{height:100%;border-radius:999px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)}
   .maligno-fill{background:linear-gradient(90deg,#f87171,#fbbf24)}
@@ -306,6 +324,15 @@
 
     <input type="file" id="fi" accept="image/*" onchange="onFileSelected(this.files[0])">
 
+    <div class="modo-selector" id="modo-selector">
+      <span class="modo-lbl">Modo de análisis:</span>
+      <div class="modo-group">
+        <button class="modo-btn active" id="modo-balanceado" onclick="setModo('balanceado')">Balanceado · 0.62</button>
+        <button class="modo-btn" id="modo-screening" onclick="setModo('screening')">Screening · 0.45</button>
+      </div>
+      <div class="modo-hint" id="modo-hint">Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.</div>
+    </div>
+
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()"
          ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
       <div class="drop-icon">🩺</div>
@@ -333,10 +360,12 @@
           <span class="verdict-icon" id="verdict-icon"></span>
           <div class="verdict-label" id="verdict-label"></div>
           <div class="verdict-desc" id="verdict-desc"></div>
+          <div class="verdict-dudoso" id="verdict-dudoso">⚠️ Caso dudoso — la probabilidad está cerca del umbral de decisión. Se recomienda revisión prioritaria por un dermatólogo.</div>
         </div>
         <div class="conf-label">Nivel de confianza del modelo</div>
         <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar"></div></div>
         <div class="conf-value" id="conf-value"></div>
+        <div id="conf-range"></div>
 
         <!-- PÁGINA: Diagnóstico -->
         <div class="page active" id="page-diag">
@@ -370,7 +399,7 @@
             <div style="font-size:.8rem;color:var(--muted)">Ajusta el umbral con que el modelo decide "Maligno" y observa el efecto en vivo.</div>
             <div class="thr-row">
               <span style="font-size:.78rem;color:var(--muted)">0.50</span>
-              <input type="range" id="thr-slider" min="50" max="95" value="62" oninput="setThreshold(this.value)">
+              <input type="range" id="thr-slider" min="35" max="95" value="62" oninput="setThreshold(this.value)">
               <span style="font-size:.78rem;color:var(--muted)">0.95</span>
             </div>
             <div style="text-align:center">Umbral: <b id="thr-val">0.62</b> →
@@ -538,6 +567,79 @@ let ultimoResultado=null, ultimaImagenB64=null;
 const SVGNS='http://www.w3.org/2000/svg';
 const UMBRAL_BASE=0.62;
 
+/* ---------- Modo de operación (umbral de decisión) ---------- */
+const MODOS_JS={balanceado:0.62,screening:0.45};
+const MARGEN_DUDA_JS=0.10;
+let modoActual='balanceado';
+let incStats=null;   // {media, std} del MC Dropout precargado
+
+function umbralActual(){return MODOS_JS[modoActual]||UMBRAL_BASE;}
+
+function setModo(m){
+  if(!MODOS_JS[m])return;
+  modoActual=m;
+  document.getElementById('modo-balanceado').classList.toggle('active',m==='balanceado');
+  document.getElementById('modo-screening').classList.toggle('active',m==='screening');
+  document.getElementById('modo-hint').textContent=(m==='screening')
+    ?'Screening: umbral 0.45 — prioriza sensibilidad (detecta más malignos, acepta más falsos positivos). Útil como primer filtro de cribado.'
+    :'Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.';
+  if(ultimoResultado&&ultimoResultado.prob_raw!==undefined)renderVeredicto(ultimoResultado.prob_raw);
+}
+
+/* Réplica en JS de src/riesgo.py para recalcular sin ir al servidor */
+function riesgoJS(prob,umbral){
+  if(prob<Math.min(0.30,umbral))return{banda:'Bajo',color:'#06d6a0',recomendacion:'Probabilidad baja de malignidad. Mantenga vigilancia y autoexamen periodico.'};
+  if(prob<umbral)return{banda:'Moderado',color:'#ffd166',recomendacion:'Riesgo moderado. Se sugiere control dermatologico de rutina.'};
+  if(prob<0.85)return{banda:'Alto',color:'#ff9a3c',recomendacion:'Riesgo alto. Consulte a un dermatologo a la brevedad para evaluacion.'};
+  return{banda:'Muy alto',color:'#ff4d6d',recomendacion:'Riesgo muy alto. Acuda a un especialista de forma prioritaria.'};
+}
+
+/* Aplica el veredicto (clase, confianza, riesgo, caso dudoso) según el modo activo */
+function renderVeredicto(prob){
+  const umbral=umbralActual();
+  const esMaligno=prob>=umbral;
+  const conf=esMaligno?prob:1-prob;
+  const colorV=esMaligno?'#f87171':'#34d399';
+
+  const box=document.getElementById('verdict-box');
+  box.className='verdict '+(esMaligno?'maligno':'benigno');
+  document.getElementById('verdict-icon').textContent=esMaligno?'⚠️':'✅';
+  document.getElementById('verdict-label').textContent=esMaligno?'MALIGNO':'BENIGNO';
+  document.getElementById('verdict-desc').textContent=(esMaligno
+    ?'Se detectaron características asociadas a lesiones potencialmente malignas.'
+    :'No se detectaron patrones malignos evidentes.')
+    +' (modo '+modoActual+', umbral '+umbral.toFixed(2)+')';
+
+  document.getElementById('verdict-dudoso').classList.toggle('show',Math.abs(prob-umbral)<=MARGEN_DUDA_JS);
+
+  const pct=conf*100;const bar=document.getElementById('conf-bar');
+  bar.className='conf-bar-fill '+(esMaligno?'maligno-fill':'benigno-fill');
+  setTimeout(()=>{bar.style.width=pct+'%'},80);
+  document.getElementById('conf-value').textContent=pct.toFixed(1)+'%';
+  document.getElementById('m-conf').textContent=pct.toFixed(1)+'%';
+
+  const r=riesgoJS(prob,umbral),band=document.getElementById('gauge-band');
+  band.textContent=r.banda;band.style.color=r.color;
+  document.getElementById('gauge-rec').textContent=r.recomendacion;
+
+  renderConfRange();
+  return colorV;
+}
+
+/* Rango de confianza estimado con la incertidumbre del MC Dropout precargado */
+function renderConfRange(){
+  const el=document.getElementById('conf-range');
+  if(!incStats||!ultimoResultado){el.classList.remove('show');return;}
+  const umbral=umbralActual();
+  const esMaligno=ultimoResultado.prob_raw>=umbral;
+  const lo=Math.max(0,Math.min(1,incStats.media-incStats.std));
+  const hi=Math.max(0,Math.min(1,incStats.media+incStats.std));
+  const cLo=esMaligno?lo:1-hi, cHi=esMaligno?hi:1-lo;
+  el.innerHTML='Rango de confianza estimado (MC Dropout, '+incStats.n+' pasadas): <b>'
+    +(cLo*100).toFixed(1)+'% – '+(cHi*100).toFixed(1)+'%</b> · dispersión ±'+(incStats.std*100).toFixed(1)+'%';
+  el.classList.add('show');
+}
+
 /* ---------- Navegación ---------- */
 function setPage(p){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
@@ -600,12 +702,27 @@ function onFileSelected(file){
   };
   reader.readAsDataURL(file);
 }
-async function analizar(b64){
+async function analizar(b64,forzar){
   document.getElementById('loading').style.display='block';
   document.getElementById('resultado').style.display='none';
   try{
-    const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})});
-    const d=await resp.json();ultimoResultado=d;mostrarResultado(d);
+    const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imagen:b64,modo:modoActual,forzar:!!forzar})});
+    const d=await resp.json();
+    document.getElementById('loading').style.display='none';
+    if(d.error){alert('Error del servidor: '+d.error);return;}
+    if(d.rechazado){   // barrera del servidor: la imagen no parece piel
+      imagenPendienteB64=b64;
+      const banner=document.getElementById('quality-banner');
+      banner.className='show danger';
+      banner.innerHTML='<div class="qb-row">⚠️ '+d.motivo+'</div>'+
+        '<div class="qb-actions">'+
+        '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Sí, continuar de todas formas</button>'+
+        '<button class="qb-btn qb-btn-no" onclick="confirmarAnalisis(false)">No, cancelar</button>'+
+        '</div>';
+      return;
+    }
+    ultimoResultado=d;mostrarResultado(d);
   }catch(err){document.getElementById('loading').style.display='none';alert('Error al conectar con el servidor: '+err);}
 }
 
@@ -655,7 +772,7 @@ function confirmarAnalisis(continuar){
   }
   banner.className='show danger';
   banner.innerHTML='<div class="qb-row">⚠️ Continuando de todas formas — esta imagen no parece piel humana, el resultado puede no ser confiable.</div>';
-  analizar(imagenPendienteB64);
+  analizar(imagenPendienteB64,true);
   imagenPendienteB64=null;
 }
 
@@ -685,6 +802,7 @@ async function precargarAvanzado(b64){
             '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Mapa de calor de detección</div></div></div>'+
             '<div class="adv-note">Se deslizó una ventana clasificando '+d.n_ventanas+' regiones. La zona más sospechosa alcanzó <b>'+(d.prob_max*100).toFixed(1)+'%</b> de probabilidad de malignidad.</div>';
         }else if(t.key==='inc'){
+          incStats={media:d.prob_media,std:d.incertidumbre,n:d.n_pasadas};renderConfRange();
           const inc=d.incertidumbre;const col=inc<0.05?'#34d399':(inc<0.12?'#fbbf24':'#f87171');
           advCache.inc='<div class="cmp-row"><div class="cmp-box"><img src="data:image/png;base64,'+d.overlay_b64+'"><div class="cap">Mapa de incertidumbre (zonas brillantes = más duda)</div></div>'+
             '<div class="cmp-box"><img src="data:image/png;base64,'+d.heatmap_b64+'"><div class="cap">Desviación de los mapas Grad-CAM</div></div></div>'+
@@ -795,31 +913,20 @@ function renderRadar(abcde,color){
 
 function mostrarResultado(d){
   document.getElementById('loading').style.display='none';
-  const esMaligno=d.clase==='Maligno';const colorV=esMaligno?'#f87171':'#34d399';
   habilitarNav(true);setPage('diag');resetAvanzado();
+  incStats=null;document.getElementById('conf-range').classList.remove('show');
 
-  const box=document.getElementById('verdict-box');
-  box.className='verdict '+(esMaligno?'maligno':'benigno');
-  document.getElementById('verdict-icon').textContent=esMaligno?'⚠️':'✅';
-  document.getElementById('verdict-label').textContent=d.clase.toUpperCase();
-  document.getElementById('verdict-desc').textContent=esMaligno?'Se detectaron características asociadas a lesiones potencialmente malignas.':'No se detectaron patrones malignos evidentes.';
+  const colorV=renderVeredicto(d.prob_raw);
 
-  const pct=parseFloat(d.confianza_pct);const bar=document.getElementById('conf-bar');
-  bar.className='conf-bar-fill '+(esMaligno?'maligno-fill':'benigno-fill');
-  setTimeout(()=>{bar.style.width=pct+'%'},80);
-  document.getElementById('conf-value').textContent=pct.toFixed(1)+'%';
-  document.getElementById('m-conf').textContent=d.confianza_pct;
   document.getElementById('m-lat').textContent=d.latencia_ms+' ms';
 
   renderDonut(d.prob_raw);renderRadar(d.abcde,colorV);
 
-  const r=d.riesgo,band=document.getElementById('gauge-band');
-  band.textContent=r.banda;band.style.color=r.color;
-  document.getElementById('gauge-rec').textContent=r.recomendacion;
   const ang=(d.prob_raw*160)-80;
   setTimeout(()=>{document.getElementById('needle').setAttribute('transform','rotate('+ang+' 130 130)')},120);
 
-  document.getElementById('thr-slider').value=62;setThreshold(62);
+  const thr0=Math.round(umbralActual()*100);
+  document.getElementById('thr-slider').value=thr0;setThreshold(thr0);
 
   // Visor XAI: arranca en Grad-CAM (ya viene en la respuesta)
   setXai('gradcam');
@@ -857,7 +964,10 @@ function reiniciar(){
   document.getElementById('fi').value='';
   document.getElementById('conf-bar').style.width='0%';
   document.getElementById('quality-banner').classList.remove('show');
-  ultimoResultado=null;ultimaImagenB64=null;imagenPendienteB64=null;resetAvanzado();habilitarNav(false);
+  ultimoResultado=null;ultimaImagenB64=null;imagenPendienteB64=null;incStats=null;
+  document.getElementById('conf-range').classList.remove('show');
+  document.getElementById('verdict-dudoso').classList.remove('show');
+  resetAvanzado();habilitarNav(false);
   document.querySelectorAll('.nav-dot,.sub-dot').forEach(e=>e.classList.remove('show'));
 }
 
@@ -1048,8 +1158,9 @@ function onEvoFile(slot,file){
     document.getElementById('evo-cmp').style.display='none';
     try{
       const b64=e.target.result.split(',')[1];
-      const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})});
+      const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64,modo:modoActual,forzar:true})});
       const d=await resp.json();
+      if(d.error||d.rechazado){alert(d.error||d.motivo||'Imagen no valida');document.getElementById('evo-loading').style.display='none';return;}
       evoData[slot]={img:e.target.result,resultado:d};
     }catch(err){alert('Error analizando imagen: '+err);}
     document.getElementById('evo-loading').style.display='none';
