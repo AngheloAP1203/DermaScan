@@ -286,8 +286,8 @@
     </div>
 
     <div class="sb-badges">
-      <span class="sb-badge accent">EfficientNetB4 · 89.69% Accuracy</span>
-      <span class="sb-badge">HAM10000 · UPAO 2026</span>
+      <span class="sb-badge accent">EfficientNetB4 v2 · 92.14% Accuracy</span>
+      <span class="sb-badge">HAM10000 + ISIC · UPAO 2026</span>
     </div>
 
     <button class="sb-btn-metricas" onclick="toggleMetricas()">📈 Rendimiento del modelo</button>
@@ -327,8 +327,8 @@
     <div class="modo-selector" id="modo-selector">
       <span class="modo-lbl">Modo de análisis:</span>
       <div class="modo-group">
-        <button class="modo-btn active" id="modo-balanceado" onclick="setModo('balanceado')">Balanceado · 0.62</button>
-        <button class="modo-btn" id="modo-screening" onclick="setModo('screening')">Screening · 0.45</button>
+        <button class="modo-btn active" id="modo-balanceado" onclick="setModo('balanceado')">Balanceado · 0.56</button>
+        <button class="modo-btn" id="modo-screening" onclick="setModo('screening')">Screening · 0.42</button>
       </div>
       <div class="modo-hint" id="modo-hint">Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.</div>
     </div>
@@ -399,10 +399,10 @@
             <div style="font-size:.8rem;color:var(--muted)">Ajusta el umbral con que el modelo decide "Maligno" y observa el efecto en vivo.</div>
             <div class="thr-row">
               <span style="font-size:.78rem;color:var(--muted)">0.50</span>
-              <input type="range" id="thr-slider" min="35" max="95" value="62" oninput="setThreshold(this.value)">
+              <input type="range" id="thr-slider" min="35" max="95" value="56" oninput="setThreshold(this.value)">
               <span style="font-size:.78rem;color:var(--muted)">0.95</span>
             </div>
-            <div style="text-align:center">Umbral: <b id="thr-val">0.62</b> →
+            <div style="text-align:center">Umbral: <b id="thr-val">0.56</b> →
               <span class="thr-verdict" id="thr-verdict">—</span></div>
             <div class="thr-note" id="thr-note"></div>
           </div>
@@ -550,7 +550,7 @@
           <div class="guia-item"><b>Saliency / SmoothGrad.</b> XAI a nivel de píxel: gradientes suavizados que marcan los píxeles más relevantes.</div>
           <div class="guia-item"><b>Oclusión.</b> XAI que tapa zonas y mide cuánto cae la predicción: las zonas que más la sostienen son las clave.</div>
           <div class="guia-item"><b>TTA.</b> Promedia varias vistas aumentadas para una predicción más robusta y estimar la incertidumbre.</div>
-          <div class="guia-item"><b>Dataset HAM10000.</b> 10 015 imágenes dermatoscópicas. La herramienta funciona mejor en lesiones similares.</div>
+          <div class="guia-item"><b>Datasets HAM10000 + ISIC.</b> 13 309 imágenes dermatoscópicas fusionadas y deduplicadas. La herramienta funciona mejor en lesiones pigmentadas similares a estas fuentes.</div>
         </div>
 
         <div class="warning-box">⚠️ <span>Herramienta académica — no sustituye el diagnóstico de un dermatólogo certificado. Ante cualquier lesión sospechosa, consulte a un profesional de la salud.</span></div>
@@ -558,17 +558,17 @@
       </div>
     </div>
 
-    <footer>DermaScan · Percepción Computacional · UPAO 2026<br>Modelo entrenado sobre HAM10000 · AUC ROC 0.9479</footer>
+    <footer>DermaScan · Percepción Computacional · UPAO 2026<br>Modelo entrenado sobre HAM10000 + ISIC · AUC ROC 0.9743</footer>
   </div>
 </div>
 
 <script>
 let ultimoResultado=null, ultimaImagenB64=null;
 const SVGNS='http://www.w3.org/2000/svg';
-const UMBRAL_BASE=0.62;
+const UMBRAL_BASE=0.56;
 
 /* ---------- Modo de operación (umbral de decisión) ---------- */
-const MODOS_JS={balanceado:0.62,screening:0.45};
+const MODOS_JS={balanceado:0.56,screening:0.42};
 const MARGEN_DUDA_JS=0.10;
 let modoActual='balanceado';
 let incStats=null;   // {media, std} del MC Dropout precargado
@@ -581,7 +581,7 @@ function setModo(m){
   document.getElementById('modo-balanceado').classList.toggle('active',m==='balanceado');
   document.getElementById('modo-screening').classList.toggle('active',m==='screening');
   document.getElementById('modo-hint').textContent=(m==='screening')
-    ?'Screening: umbral 0.45 — prioriza sensibilidad (detecta más malignos, acepta más falsos positivos). Útil como primer filtro de cribado.'
+    ?'Screening: umbral 0.42 — prioriza sensibilidad (detecta más malignos, acepta más falsos positivos). Útil como primer filtro de cribado.'
     :'Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.';
   if(ultimoResultado&&ultimoResultado.prob_raw!==undefined)renderVeredicto(ultimoResultado.prob_raw);
 }
@@ -866,7 +866,7 @@ function setThreshold(v){
   let nota;
   if(thr<UMBRAL_BASE) nota='Umbral más bajo → mayor sensibilidad (detecta más malignos, pero más falsos positivos).';
   else if(thr>UMBRAL_BASE) nota='Umbral más alto → mayor especificidad (menos falsos positivos, pero puede escapar algún maligno).';
-  else nota='Umbral óptimo del modelo (0.62), equilibra sensibilidad y especificidad.';
+  else nota='Umbral óptimo del modelo (0.56), equilibra sensibilidad y especificidad.';
   document.getElementById('thr-note').textContent=nota+' Probabilidad de esta imagen: '+(p*100).toFixed(1)+'%.';
 }
 
@@ -981,7 +981,7 @@ function resetAvanzado(){
 }
 function barChart(filas){return '<div class="bar-chart">'+filas.map(f=>'<div class="bc-row"><span class="bc-lbl">'+f.lbl+'</span><div class="bc-track"><div class="bc-fill" style="width:0%;background:'+f.col+'" data-w="'+(f.val*100)+'"></div></div><span class="bc-val">'+f.txt+'</span></div>').join('')+'</div>';}
 function animarBarras(cont){cont.querySelectorAll('.bc-fill').forEach(b=>{setTimeout(()=>{b.style.width=b.dataset.w+'%';},60);});}
-function colorProb(p){return p>=0.62?'#f87171':(p>=0.3?'#fbbf24':'#34d399');}
+function colorProb(p){return p>=0.56?'#f87171':(p>=0.3?'#fbbf24':'#34d399');}
 async function advFetch(boton,salida,clave,url,render){
   if(!ultimaImagenB64)return;
   const out=document.getElementById(salida);

@@ -2,7 +2,7 @@
 import time
 from flask import Blueprint, request, jsonify, render_template, Response
 
-from .config import UMBRAL, NOMBRE_MODELO, ACCURACY, MODOS, MARGEN_DUDA
+from .config import UMBRAL, NOMBRE_MODELO, ACCURACY, MODOS, MARGEN_DUDA, VERSION_MODELO, DATASET
 from .modelo import inferir
 from .preprocesamiento import decodificar, preprocesar
 from .gradcam import generar_gradcam
@@ -40,8 +40,8 @@ def index():
 
 @bp.route('/salud')
 def salud():
-    return jsonify({'estado': 'activo', 'modelo': NOMBRE_MODELO,
-                    'umbral': UMBRAL, 'accuracy': ACCURACY})
+    return jsonify({'estado': 'activo', 'modelo': NOMBRE_MODELO, 'version': VERSION_MODELO,
+                    'dataset': DATASET, 'umbral': UMBRAL, 'accuracy': ACCURACY})
 
 
 @bp.route('/metricas')
