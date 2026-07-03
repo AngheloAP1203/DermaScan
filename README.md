@@ -16,6 +16,11 @@ explicabilidad (Grad-CAM, Saliency, Oclusión, Integrated Gradients), análisis
 morfológico ABCDE, estimación de incertidumbre (MC Dropout, TTA) y chequeo de
 calidad/validez de la imagen subida.
 
+Ofrece dos modos de operación seleccionables: **Balanceado** (umbral 0.62, máxima
+exactitud) y **Screening** (umbral 0.45, prioriza sensibilidad para detectar más
+lesiones malignas). Los casos con probabilidad cercana al umbral se marcan como
+dudosos y se recomienda revisión prioritaria por un especialista.
+
 Proyecto UPAO 2026 — Percepción Computacional.
 
 **Aviso:** herramienta académica, no sustituye el diagnóstico de un dermatólogo
