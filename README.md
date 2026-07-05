@@ -11,7 +11,7 @@ pinned: false
 # DermaScan — Detección Temprana de Lesiones de Piel
 
 Herramienta académica de análisis de lesiones cutáneas basada en EfficientNetB4
-(89.69% accuracy, entrenado sobre HAM10000). Incluye múltiples técnicas de
+(92.34% accuracy, AUC 0.9747, entrenado sobre HAM10000 + ISIC combinados). Incluye múltiples técnicas de
 explicabilidad (Grad-CAM, Saliency, Oclusión, Integrated Gradients), análisis
 morfológico ABCDE, estimación de incertidumbre (MC Dropout, TTA) y chequeo de
 calidad/validez de la imagen subida.

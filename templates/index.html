@@ -286,7 +286,7 @@
     </div>
 
     <div class="sb-badges">
-      <span class="sb-badge accent">EfficientNetB4 v2 · 92.14% Accuracy</span>
+      <span class="sb-badge accent">EfficientNetB4 v3 · 92.34% Accuracy</span>
       <span class="sb-badge">HAM10000 + ISIC · UPAO 2026</span>
     </div>
 
@@ -327,8 +327,8 @@
     <div class="modo-selector" id="modo-selector">
       <span class="modo-lbl">Modo de análisis:</span>
       <div class="modo-group">
-        <button class="modo-btn active" id="modo-balanceado" onclick="setModo('balanceado')">Balanceado · 0.56</button>
-        <button class="modo-btn" id="modo-screening" onclick="setModo('screening')">Screening · 0.42</button>
+        <button class="modo-btn active" id="modo-balanceado" onclick="setModo('balanceado')">Balanceado · 0.62</button>
+        <button class="modo-btn" id="modo-screening" onclick="setModo('screening')">Screening · 0.45</button>
       </div>
       <div class="modo-hint" id="modo-hint">Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.</div>
     </div>
@@ -399,10 +399,10 @@
             <div style="font-size:.8rem;color:var(--muted)">Ajusta el umbral con que el modelo decide "Maligno" y observa el efecto en vivo.</div>
             <div class="thr-row">
               <span style="font-size:.78rem;color:var(--muted)">0.50</span>
-              <input type="range" id="thr-slider" min="35" max="95" value="56" oninput="setThreshold(this.value)">
+              <input type="range" id="thr-slider" min="35" max="95" value="62" oninput="setThreshold(this.value)">
               <span style="font-size:.78rem;color:var(--muted)">0.95</span>
             </div>
-            <div style="text-align:center">Umbral: <b id="thr-val">0.56</b> →
+            <div style="text-align:center">Umbral: <b id="thr-val">0.62</b> →
               <span class="thr-verdict" id="thr-verdict">—</span></div>
             <div class="thr-note" id="thr-note"></div>
           </div>
@@ -558,17 +558,17 @@
       </div>
     </div>
 
-    <footer>DermaScan · Percepción Computacional · UPAO 2026<br>Modelo entrenado sobre HAM10000 + ISIC · AUC ROC 0.9743</footer>
+    <footer>DermaScan · Percepción Computacional · UPAO 2026<br>Modelo entrenado sobre HAM10000 + ISIC · AUC ROC 0.9747</footer>
   </div>
 </div>
 
 <script>
 let ultimoResultado=null, ultimaImagenB64=null;
 const SVGNS='http://www.w3.org/2000/svg';
-const UMBRAL_BASE=0.56;
+const UMBRAL_BASE=0.62;
 
 /* ---------- Modo de operación (umbral de decisión) ---------- */
-const MODOS_JS={balanceado:0.56,screening:0.42};
+const MODOS_JS={balanceado:0.62,screening:0.45};
 const MARGEN_DUDA_JS=0.10;
 let modoActual='balanceado';
 let incStats=null;   // {media, std} del MC Dropout precargado
@@ -581,7 +581,7 @@ function setModo(m){
   document.getElementById('modo-balanceado').classList.toggle('active',m==='balanceado');
   document.getElementById('modo-screening').classList.toggle('active',m==='screening');
   document.getElementById('modo-hint').textContent=(m==='screening')
-    ?'Screening: umbral 0.42 — prioriza sensibilidad (detecta más malignos, acepta más falsos positivos). Útil como primer filtro de cribado.'
+    ?'Screening: umbral 0.45 — prioriza sensibilidad (detecta más malignos, acepta más falsos positivos). Útil como primer filtro de cribado.'
     :'Balanceado usa el umbral óptimo de validación (máxima exactitud). Screening baja el umbral para priorizar la detección de malignos.';
   if(ultimoResultado&&ultimoResultado.prob_raw!==undefined)renderVeredicto(ultimoResultado.prob_raw);
 }
@@ -981,7 +981,7 @@ function resetAvanzado(){
 }
 function barChart(filas){return '<div class="bar-chart">'+filas.map(f=>'<div class="bc-row"><span class="bc-lbl">'+f.lbl+'</span><div class="bc-track"><div class="bc-fill" style="width:0%;background:'+f.col+'" data-w="'+(f.val*100)+'"></div></div><span class="bc-val">'+f.txt+'</span></div>').join('')+'</div>';}
 function animarBarras(cont){cont.querySelectorAll('.bc-fill').forEach(b=>{setTimeout(()=>{b.style.width=b.dataset.w+'%';},60);});}
-function colorProb(p){return p>=0.56?'#f87171':(p>=0.3?'#fbbf24':'#34d399');}
+function colorProb(p){return p>=0.62?'#f87171':(p>=0.3?'#fbbf24':'#34d399');}
 async function advFetch(boton,salida,clave,url,render){
   if(!ultimaImagenB64)return;
   const out=document.getElementById(salida);
