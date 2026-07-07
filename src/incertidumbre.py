@@ -12,6 +12,41 @@ from .config import IMG_SIZE
 from .modelo import modelo, CAPA_CONV, _buscar_ultima_conv
 
 
+def incertidumbre_rapida(tensor, n=6):
+    """Version ligera de Monte Carlo Dropout para la barrera de abstencion de
+    /analizar: solo calcula media y desviacion de la probabilidad (sin generar
+    mapas de calor), para mantener el costo bajo en cada peticion real.
+
+    IMPORTANTE: llamar al modelo completo con training=True activaria tambien
+    las capas BatchNormalization de la cabeza en modo entrenamiento, que con un
+    lote pequeno (n copias de la misma imagen) calculan estadisticas de lote
+    inestables y contaminan la salida con una dispersion artificialmente alta
+    para CUALQUIER imagen (falso positivo de incertidumbre). Por eso se recorre
+    capa por capa: Dropout se deja estocastico (training=True) para el efecto
+    de Monte Carlo, y BatchNormalization/el backbone se mantienen en modo
+    inferencia (training=False) usando las estadisticas poblacionales aprendidas.
+
+    `tensor` es el batch [1, H, W, 3] ya preprocesado (mismo que usa `inferir`).
+    Devuelve (prob_media, desviacion). Ante cualquier error devuelve desviacion
+    0.0 para no bloquear el flujo normal por una falla de este chequeo.
+    """
+    try:
+        x = tf.repeat(tensor, n, axis=0)
+        for capa in modelo.layers[1:]:               # se omite la InputLayer
+            nombre_clase = capa.__class__.__name__
+            if nombre_clase == 'Dropout':
+                x = capa(x, training=True)            # estocastico: efecto Monte Carlo
+            elif nombre_clase == 'BatchNormalization' or hasattr(capa, 'layers'):
+                x = capa(x, training=False)           # estadisticas poblacionales (backbone y BN de la cabeza)
+            else:
+                x = capa(x)
+        preds = x.numpy().flatten()
+        return float(preds.mean()), float(preds.std())
+    except Exception as e:
+        print(f"[MC-Dropout rapido] error: {e}", flush=True)
+        return None, 0.0
+
+
 def _b64(img_rgb):
     import cv2
     ok, buf = cv2.imencode('.png', cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))

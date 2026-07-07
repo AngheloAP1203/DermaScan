@@ -729,6 +729,18 @@ async function analizar(b64,forzar){
         '</div>';
       return;
     }
+    if(d.no_clasificable){   // barrera de abstencion: incertidumbre alta (posible caso fuera de distribucion)
+      imagenPendienteB64=b64;
+      const banner=document.getElementById('quality-banner');
+      banner.className='show warn';
+      banner.innerHTML='<div class="qb-row">❓ <b>No clasificable con confianza.</b> '+d.motivo+
+        ' (incertidumbre ±'+(d.incertidumbre*100).toFixed(1)+'%)</div>'+
+        '<div class="qb-actions">'+
+        '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Ver veredicto de todas formas</button>'+
+        '<button class="qb-btn qb-btn-no" onclick="confirmarAnalisis(false)">Cancelar</button>'+
+        '</div>';
+      return;
+    }
     ultimoResultado=d;mostrarResultado(d);
   }catch(err){document.getElementById('loading').style.display='none';alert('Error al conectar con el servidor: '+err);}
 }
@@ -778,7 +790,7 @@ function confirmarAnalisis(continuar){
     return;
   }
   banner.className='show danger';
-  banner.innerHTML='<div class="qb-row">⚠️ Continuando de todas formas — esta imagen no parece piel humana, el resultado puede no ser confiable.</div>';
+  banner.innerHTML='<div class="qb-row">⚠️ Continuando de todas formas — el resultado puede no ser confiable.</div>';
   analizar(imagenPendienteB64,true);
   imagenPendienteB64=null;
 }

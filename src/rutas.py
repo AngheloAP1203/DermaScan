@@ -2,7 +2,8 @@
 import time
 from flask import Blueprint, request, jsonify, render_template, Response
 
-from .config import UMBRAL, NOMBRE_MODELO, ACCURACY, MODOS, MARGEN_DUDA, VERSION_MODELO, DATASET
+from .config import (UMBRAL, NOMBRE_MODELO, ACCURACY, MODOS, MARGEN_DUDA, VERSION_MODELO, DATASET,
+                     UMBRAL_ABSTENCION, N_PASADAS_ABSTENCION)
 from .modelo import inferir
 from .preprocesamiento import decodificar, preprocesar
 from .gradcam import generar_gradcam
@@ -14,7 +15,7 @@ from .avanzado import (tta, oclusion, robustez, analisis_canales, deteccion_vent
                        diagnostico_enfocado, robustez_ruido)
 from .explicabilidad import comparar
 from .saliency import saliency
-from .incertidumbre import mc_dropout
+from .incertidumbre import mc_dropout, incertidumbre_rapida
 from .integrated import integrated_gradients
 from .calidad import evaluar_calidad
 from .roc import curva_roc_b64
@@ -156,9 +157,31 @@ def analizar():
 
     tensor = preprocesar(img_rgb)
 
+    # Latencia de produccion: un unico paso hacia adelante con el grafo compilado
+    # (@tf.function en modelo.inferir). Se mide de forma aislada, igual que en el
+    # benchmark del notebook, para que la cifra reportada siga siendo comparable.
     t0   = time.time()
     prob = float(inferir(tensor)[0][0])
     ms   = round((time.time() - t0) * 1000, 1)
+
+    # Barrera de abstencion por incertidumbre (Monte Carlo Dropout). Si el modelo
+    # duda demasiado -tipico de imagenes fuera de la distribucion de entrenamiento,
+    # como condiciones no pigmentadas- el sistema se abstiene en vez de forzar un
+    # veredicto Benigno/Maligno enganoso. No afecta la metrica de latencia anterior
+    # porque se mide por separado, y se puede omitir explicitamente con 'forzar'.
+    media_mc, disp_mc = incertidumbre_rapida(tensor, n=N_PASADAS_ABSTENCION)
+    if disp_mc is not None and disp_mc > UMBRAL_ABSTENCION and not datos.get('forzar'):
+        return jsonify({
+            'no_clasificable': True,
+            'motivo': 'El modelo presenta alta incertidumbre para esta imagen: es posible que este fuera '
+                      'del dominio de entrenamiento (lesiones pigmentadas de HAM10000 e ISIC). Para evitar '
+                      'un diagnostico enganoso, el sistema no emite un veredicto Benigno/Maligno.',
+            'incertidumbre': round(disp_mc, 4),
+            'prob_media_mc': round(media_mc, 4) if media_mc is not None else None,
+            'prob_raw': round(prob, 4),
+            'n_pasadas': N_PASADAS_ABSTENCION,
+            'latencia_ms': ms,
+        })
 
     clase  = 'Maligno' if prob >= umbral else 'Benigno'
     conf   = prob if clase == 'Maligno' else 1 - prob
@@ -168,6 +191,7 @@ def analizar():
         'clase': clase,
         'confianza_pct': f'{conf*100:.1f}%',
         'latencia_ms': ms,
+        'incertidumbre': round(disp_mc, 4) if disp_mc is not None else None,
         'prob_raw': round(prob, 4),
         'modo': modo,
         'umbral_usado': umbral,
