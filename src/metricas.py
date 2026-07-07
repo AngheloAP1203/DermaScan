@@ -7,30 +7,30 @@ METRICAS_MODELO = {
     'resolucion': '380x380',
     'transfer_learning': 'ImageNet',
     'dataset': 'HAM10000 + ISIC (13309 imagenes fusionadas y deduplicadas)',
-    'umbral': 0.62,
-    'latencia_prod_ms': 20,
-    'latencia_tta_ms': 243,
-    'mlflow_run': '4b35210effc343c3beec411b7dd5251a',
+    'umbral': 0.70,
+    'latencia_prod_ms': 16,
+    'latencia_tta_ms': 186,
+    'mlflow_run': 'bbbdad49a1354e70b0e63ffe66e0c106',
 
     # Métricas globales (test set, 1997 imágenes)
     'globales': {
-        'accuracy':        0.9234,
-        'auc_roc':         0.9747,
-        'f1_macro':        0.9019,
-        'precision_macro': 0.8957,
-        'recall_macro':    0.9088,
+        'accuracy':        0.9239,
+        'auc_roc':         0.9706,
+        'f1_macro':        0.9009,
+        'precision_macro': 0.9009,
+        'recall_macro':    0.9009,
     },
 
     # Métricas por clase
     'por_clase': [
-        {'clase': 'Benigno', 'precision': 0.96, 'recall': 0.94, 'f1': 0.95, 'support': 1479},
-        {'clase': 'Maligno', 'precision': 0.83, 'recall': 0.88, 'f1': 0.86, 'support': 518},
+        {'clase': 'Benigno', 'precision': 0.95, 'recall': 0.95, 'f1': 0.95, 'support': 1479},
+        {'clase': 'Maligno', 'precision': 0.85, 'recall': 0.85, 'f1': 0.85, 'support': 518},
     ],
 
     # Matriz de confusión [[VN, FP], [FN, VP]] con Maligno como positivo
     'matriz_confusion': {
-        'benignas_ok': 1389, 'falsos_positivos': 90,    # 1389+90 = 1479
-        'malignas_ok': 455,  'falsos_negativos': 63,     # 455+63  = 518
+        'benignas_ok': 1403, 'falsos_positivos': 76,    # 1403+76 = 1479
+        'malignas_ok': 442,  'falsos_negativos': 76,     # 442+76  = 518
     },
 
     # Comparativa contra el baseline clásico

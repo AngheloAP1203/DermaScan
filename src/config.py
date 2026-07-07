@@ -6,14 +6,14 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CLASES     = ['Benigno', 'Maligno']
 IMG_SIZE   = 380
-UMBRAL     = 0.62
+UMBRAL     = 0.70
 MODEL_PATH = os.path.join(RAIZ, 'modelo_dermascan.keras')
 
 # Modos de operación: el umbral de decisión cambia según la prioridad clínica.
 # 'balanceado' usa el umbral óptimo hallado en validación (máxima exactitud).
 # 'screening' baja el umbral para priorizar sensibilidad (menos falsos negativos).
 MODOS = {
-    'balanceado': 0.62,
+    'balanceado': 0.70,
     'screening':  0.45,
 }
 
@@ -42,5 +42,5 @@ N_PASADAS_ABSTENCION = 6
 NOMBRE_MODELO = 'EfficientNetB4'
 VERSION_MODELO = 'v3 (multi-dataset)'
 DATASET       = 'HAM10000 + ISIC (13309 imagenes fusionadas y deduplicadas)'
-ACCURACY      = 0.9234
-AUC_ROC       = 0.9747
+ACCURACY      = 0.9239
+AUC_ROC       = 0.9706

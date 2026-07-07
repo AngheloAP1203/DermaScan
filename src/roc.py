@@ -1,7 +1,8 @@
 """Curva ROC del modelo. Como el notebook no exportó los arreglos FPR/TPR, se
-estima una curva binormal calibrada al AUC real (0.9747) y se superpone el
-PUNTO DE OPERACIÓN REAL medido en el test set (umbral 0.62). Se etiqueta
-claramente como curva estimada para ser honestos."""
+estima una curva binormal calibrada al AUC real y se superpone el PUNTO DE
+OPERACIÓN REAL medido en el test set (umbral y matriz tomados de METRICAS_MODELO,
+para no quedar desactualizados si el modelo cambia). Se etiqueta claramente como
+curva estimada para ser honestos."""
 import base64
 import io
 from statistics import NormalDist
@@ -39,8 +40,9 @@ def curva_roc_b64():
     ax.plot([0, 1], [0, 1], '--', color='#555577', linewidth=1, label='Azar (AUC 0.5)')
     ax.plot(fpr, tpr, color='#6c63ff', linewidth=2.2, label=f'EfficientNetB4 (AUC {auc:.4f})')
     ax.fill_between(fpr, tpr, alpha=0.12, color='#6c63ff')
+    umbral_real = METRICAS_MODELO['umbral']
     ax.scatter([fpr_real], [tpr_real], color='#ff4d6d', s=70, zorder=5,
-               label=f'Umbral 0.62 (TPR {tpr_real:.2f}, FPR {fpr_real:.2f})')
+               label=f'Umbral {umbral_real:.2f} (TPR {tpr_real:.2f}, FPR {fpr_real:.2f})')
 
     ax.set_xlim(0, 1); ax.set_ylim(0, 1.02)
     ax.set_xlabel('Tasa de falsos positivos (FPR)', color='#c4b5fd', fontsize=9)

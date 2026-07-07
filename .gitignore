@@ -3,3 +3,5 @@ __pycache__/
 .claude/
 mlruns/
 Imagenes de prueba/
+dermascan_despliegue.zip
+dermascan_despliegue/
