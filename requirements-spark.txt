@@ -1,0 +1,6 @@
+# Dependencias del pipeline batch (pipeline_batch.py), separadas de
+# requirements.txt a proposito: el servicio Flask (Dockerfile) NO necesita
+# pyspark, y no tiene sentido meterle ~300MB extra a la imagen del API por
+# un script que corre por separado via spark-submit en el cluster.
+-r requirements.txt
+pyspark==3.5.3
