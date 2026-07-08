@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .claude/
 mlruns/
+mlartifacts/
+mlflow.db
+modelo_dermascan.onnx
 Imagenes de prueba/
 dermascan_despliegue.zip
 dermascan_despliegue/
+.venv
