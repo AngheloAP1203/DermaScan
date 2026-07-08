@@ -19,6 +19,7 @@ from .incertidumbre import mc_dropout, incertidumbre_rapida
 from .integrated import integrated_gradients
 from .calidad import evaluar_calidad
 from .roc import curva_roc_b64
+from .arquitectura_datos import EVIDENCIA_SPARK, EVIDENCIA_MINIO, EVIDENCIA_KAFKA, NOTA_ARQUITECTURA
 
 bp = Blueprint('dermascan', __name__)
 
@@ -48,6 +49,13 @@ def salud():
 @bp.route('/metricas')
 def metricas():
     return jsonify(METRICAS_MODELO)
+
+
+@bp.route('/arquitectura')
+def arquitectura():
+    return render_template('arquitectura.html',
+                          spark=EVIDENCIA_SPARK, minio=EVIDENCIA_MINIO,
+                          kafka=EVIDENCIA_KAFKA, nota=NOTA_ARQUITECTURA)
 
 
 @bp.route('/roc')
