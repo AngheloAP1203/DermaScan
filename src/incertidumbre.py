@@ -12,6 +12,29 @@ from .config import IMG_SIZE
 from .modelo import modelo, CAPA_CONV, _buscar_ultima_conv
 
 
+@tf.function(input_signature=[tf.TensorSpec([None, IMG_SIZE, IMG_SIZE, 3], tf.float32)])
+def _forward_mc(x):
+    """Igual criterio que incertidumbre_rapida (Dropout estocastico,
+    BatchNorm/backbone en modo inferencia) pero compilado a grafo estatico
+    con @tf.function — igual que `modelo.inferir` — en vez de ejecutar cada
+    capa en modo eager. La diferencia de costo NO es cosmetica: medido en
+    este proyecto, la version eager tardaba ~2.9s por peticion (dominando
+    por completo el presupuesto de latencia del Fast Path) mientras que el
+    forward pass compilado normal tarda ~0.2s. El loop sobre modelo.layers
+    es sobre una lista fija de objetos Python (no depende de datos), así que
+    tf.function lo desenrolla una vez al trazar el grafo, igual que
+    cualquier otro bucle estatico."""
+    for capa in modelo.layers[1:]:               # se omite la InputLayer
+        nombre_clase = capa.__class__.__name__
+        if nombre_clase == 'Dropout':
+            x = capa(x, training=True)            # estocastico: efecto Monte Carlo
+        elif nombre_clase == 'BatchNormalization' or hasattr(capa, 'layers'):
+            x = capa(x, training=False)           # estadisticas poblacionales (backbone y BN de la cabeza)
+        else:
+            x = capa(x)
+    return x
+
+
 def incertidumbre_rapida(tensor, n=6):
     """Version ligera de Monte Carlo Dropout para la barrera de abstencion de
     /analizar: solo calcula media y desviacion de la probabilidad (sin generar
@@ -21,9 +44,9 @@ def incertidumbre_rapida(tensor, n=6):
     las capas BatchNormalization de la cabeza en modo entrenamiento, que con un
     lote pequeno (n copias de la misma imagen) calculan estadisticas de lote
     inestables y contaminan la salida con una dispersion artificialmente alta
-    para CUALQUIER imagen (falso positivo de incertidumbre). Por eso se recorre
-    capa por capa: Dropout se deja estocastico (training=True) para el efecto
-    de Monte Carlo, y BatchNormalization/el backbone se mantienen en modo
+    para CUALQUIER imagen (falso positivo de incertidumbre). Por eso _forward_mc
+    recorre capa por capa: Dropout se deja estocastico (training=True) para el
+    efecto de Monte Carlo, y BatchNormalization/el backbone se mantienen en modo
     inferencia (training=False) usando las estadisticas poblacionales aprendidas.
 
     `tensor` es el batch [1, H, W, 3] ya preprocesado (mismo que usa `inferir`).
@@ -32,15 +55,7 @@ def incertidumbre_rapida(tensor, n=6):
     """
     try:
         x = tf.repeat(tensor, n, axis=0)
-        for capa in modelo.layers[1:]:               # se omite la InputLayer
-            nombre_clase = capa.__class__.__name__
-            if nombre_clase == 'Dropout':
-                x = capa(x, training=True)            # estocastico: efecto Monte Carlo
-            elif nombre_clase == 'BatchNormalization' or hasattr(capa, 'layers'):
-                x = capa(x, training=False)           # estadisticas poblacionales (backbone y BN de la cabeza)
-            else:
-                x = capa(x)
-        preds = x.numpy().flatten()
+        preds = _forward_mc(x).numpy().flatten()
         return float(preds.mean()), float(preds.std())
     except Exception as e:
         print(f"[MC-Dropout rapido] error: {e}", flush=True)

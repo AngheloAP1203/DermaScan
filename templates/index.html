@@ -742,7 +742,25 @@ async function analizar(b64,forzar){
       return;
     }
     ultimoResultado=d;mostrarResultado(d);
+    cargarExplicabilidad(b64);   // Grad-CAM/ABCDE/visuales: fuera del Fast Path, se piden aparte
   }catch(err){document.getElementById('loading').style.display='none';alert('Error al conectar con el servidor: '+err);}
+}
+
+/* /analizar (Fast Path) ya no trae abcde/gradcam/visuales — son computos caros
+   (backprop, matplotlib, k-means) que se piden a /explicabilidad DESPUES de
+   mostrar el veredicto, para no bloquear la respuesta principal. Esta llamada
+   corre en paralelo mientras el usuario ya esta viendo clase/probabilidad/riesgo. */
+async function cargarExplicabilidad(b64){
+  try{
+    const d=await(await fetch('/explicabilidad',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imagen:b64})})).json();
+    if(!ultimoResultado||d.error)return;
+    ultimoResultado.abcde=d.abcde;ultimoResultado.gradcam=d.gradcam;ultimoResultado.visuales=d.visuales;
+    renderExplicabilidad(ultimoResultado);
+    // Si el usuario ya esta mirando la pestaña Grad-CAM, refrescarla ahora que llegaron los datos
+    const btn=document.getElementById('xb-gradcam');
+    if(btn&&btn.classList.contains('active')){delete xaiCache.gradcam;setXai('gradcam');}
+  }catch(e){/* si falla, los paneles se quedan en su estado "no disponible" ya manejado por renderExplicabilidad */}
 }
 
 /* ---------- Chequeo de calidad / detección de piel (bloqueante si no es piel) ---------- */
@@ -939,7 +957,7 @@ function mostrarResultado(d){
 
   document.getElementById('m-lat').textContent=d.latencia_ms+' ms';
 
-  renderDonut(d.prob_raw);renderRadar(d.abcde,colorV);
+  renderDonut(d.prob_raw);
 
   const ang=(d.prob_raw*160)-80;
   setTimeout(()=>{document.getElementById('needle').setAttribute('transform','rotate('+ang+' 130 130)')},120);
@@ -947,8 +965,25 @@ function mostrarResultado(d){
   const thr0=Math.round(umbralActual()*100);
   document.getElementById('thr-slider').value=thr0;setThreshold(thr0);
 
-  // Visor XAI: arranca en Grad-CAM (ya viene en la respuesta)
+  // Grad-CAM/ABCDE/visuales todavia no llegaron (vienen de /explicabilidad,
+  // pedido aparte por cargarExplicabilidad) — esto pinta el estado "no
+  // disponible" de cada panel hasta que esos datos lleguen y se reemplace.
   setXai('gradcam');
+  renderExplicabilidad(d,colorV);
+
+  const res=document.getElementById('resultado');res.style.display='block';res.style.animation='none';void res.offsetWidth;res.style.animation='slideUp .5s ease';
+
+  // Precargar en segundo plano las técnicas pesadas (sin bloquear la interacción)
+  precargarAvanzado(ultimaImagenB64);
+}
+
+/* Radar ABCDE + panel de visuales (segmentación/histograma/bordes/paleta).
+   Se llama dos veces: una con mostrarResultado() (datos aun no disponibles,
+   pinta el estado "no disponible") y otra cuando cargarExplicabilidad()
+   recibe la respuesta de /explicabilidad y trae los datos reales. */
+function renderExplicabilidad(d,colorV){
+  if(colorV===undefined){const umbral=umbralActual();colorV=(d.prob_raw>=umbral)?'#f87171':'#34d399';}
+  renderRadar(d.abcde,colorV);
 
   const v=d.visuales;
   if(v&&v.segmentacion_b64){
@@ -968,11 +1003,6 @@ function mostrarResultado(d){
       card.innerHTML='<div class="abcde-head"><span class="abcde-name">'+a.nombre+'</span><span class="abcde-tag tag-'+a.etiqueta+'">'+a.etiqueta+'</span></div><div class="abcde-track"><div class="abcde-fill" style="background:'+colores[a.etiqueta]+'"></div></div><div class="abcde-val">'+a.valor+'</div>';
       grid.appendChild(card);const fill=card.querySelector('.abcde-fill');setTimeout(()=>{fill.style.width=(a.score*100)+'%'},150);});
   }else{document.getElementById('abcde-zone').style.display='none';document.getElementById('abcde-fail').style.display='block';}
-
-  const res=document.getElementById('resultado');res.style.display='block';res.style.animation='none';void res.offsetWidth;res.style.animation='slideUp .5s ease';
-
-  // Precargar en segundo plano las técnicas pesadas (sin bloquear la interacción)
-  precargarAvanzado(ultimaImagenB64);
 }
 
 function reiniciar(){
