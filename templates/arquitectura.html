@@ -36,6 +36,11 @@
     font-size:.82rem;line-height:1.5;position:relative;padding-left:30px}
   ul.ev li::before{content:'✓';position:absolute;left:11px;top:10px;color:var(--success);font-weight:800}
   code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px;font-size:.78rem;color:var(--accent2)}
+  .cap-label{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:var(--accent2);
+    text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+  .cap-label::before{content:'📷';font-size:.9rem}
+  .captura{width:100%;border-radius:10px;border:1px solid var(--line);display:block;
+    box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:zoom-in}
   .footer-links{display:flex;gap:14px;margin-top:24px;flex-wrap:wrap}
   .footer-links a{color:var(--muted);font-size:.78rem;text-decoration:none;border:1px solid var(--line);
     padding:8px 14px;border-radius:8px}
@@ -56,12 +61,18 @@
     <div class="card-head"><div class="card-icon">🖧</div><h2>{{ spark.titulo }}</h2></div>
     <p class="desc">{{ spark.descripcion }}</p>
     <ul class="ev">{% for item in spark.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+    <div class="cap-label">Captura real: UI del master (localhost:8080)</div>
+    <img class="captura" src="{{ url_for('static', filename='evidencia/spark_master.png') }}"
+         alt="Spark Master UI mostrando Alive Workers: 2 y la aplicacion DermaScan_Kafka_Consumer_Cluster FINISHED">
   </div>
 
   <div class="card">
     <div class="card-head"><div class="card-icon">🪣</div><h2>{{ minio.titulo }}</h2></div>
     <p class="desc">{{ minio.descripcion }}</p>
     <ul class="ev">{% for item in minio.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+    <div class="cap-label">Captura real: consola de MinIO, bucket dermascan-datalake</div>
+    <img class="captura" src="{{ url_for('static', filename='evidencia/minio_bucket.png') }}"
+         alt="Consola de MinIO mostrando el bucket dermascan-datalake con _SUCCESS y 2 particiones Parquet reales">
   </div>
 
   <div class="card">

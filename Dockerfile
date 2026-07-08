@@ -6,5 +6,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY modelo_dermascan.keras app.py ./
 COPY src/ ./src/
 COPY templates/ ./templates/
+COPY static/ ./static/
 EXPOSE 7860
 CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--timeout", "120", "app:app"]
