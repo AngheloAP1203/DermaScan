@@ -1,4 +1,4 @@
-tensorflow-cpu==2.19.0
+tensorflow==2.19.0
 onnxruntime==1.19.2
 flask==3.0.3
 opencv-python-headless==4.10.0.84
@@ -9,4 +9,4 @@ mlflow==3.14.0
 scikit-learn==1.5.2
 pandas==2.2.3
 # boto3==1.35.0  # descomentar si el artifact store de MLflow es S3
-# tf2onnx      # solo para convertir_onnx.py (build-time, no en runtime del API)
+# tf2onnx==1.16.1  # solo para convertir_onnx.py (build-time, no en runtime del API)

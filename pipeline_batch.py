@@ -1,12 +1,13 @@
 """Pipeline de procesamiento por lotes (Batch) con PySpark.
 
-Lee un directorio de imágenes dermatoscópicas reales (ej. HAM10000) desde
+Lee un directorio de imágenes dermatoscópicas reales desde
 CUALQUIER filesystem soportado por Hadoop (local, HDFS, S3/S3A, ABFS, GCS...),
-ejecuta inferencia con el modelo "champion" del Model Registry de MLflow en
-paralelo, y persiste los resultados en formato Parquet + CSV distribuidos.
+ejecuta inferencia en paralelo y persiste los resultados en formato Parquet +
+CSV distribuidos. En producción usa el modelo "champion" del Model Registry de
+MLflow; en desarrollo local puede usar `modelo_dermascan.keras`.
 
 Uso local (dev/laptop):
-    spark-submit pipeline_batch.py ./datos/HAM10000 ./resultados
+    spark-submit pipeline_batch.py ./datos/HAM10000_ISIC ./resultados
 
 Uso en un cluster real (YARN, K8s, Databricks...) — el paralelismo, la
 memoria y el master los decide quien lanza el submit, NUNCA el código:
@@ -19,8 +20,8 @@ memoria y el master los decide quien lanza el submit, NUNCA el código:
 
 El modelo se carga UNA sola vez por partición (no por imagen), eliminando la
 sobrecarga de serialización que colapsa los pipelines ingenuos. El threshold
-y la URI del modelo se resuelven contra el mismo MLflow Model Registry que
-usa la API Flask (src/config.py) — ver Fase 1.
+y la URI del modelo se resuelven desde la misma configuración que usa la API
+Flask (src/config.py): MLflow Registry si esta configurado, archivo local si no.
 """
 import os
 import sys
@@ -41,7 +42,7 @@ from pyspark.sql.types import (
 # desincronizarse del servicio en tiempo real.
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, RAIZ)
-from src.config import UMBRAL, IMG_SIZE, MODEL_URI, MARGEN_DUDA  # noqa: E402
+from src.config import UMBRAL, IMG_SIZE, MODEL_URI, MARGEN_DUDA, USAR_MLFLOW  # noqa: E402
 
 EXTENSIONES = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp']
 GLOB_IMAGENES = '*.{' + ','.join(EXTENSIONES) + '}'
@@ -147,17 +148,19 @@ def _procesar_particion(filas):
     # si la partición tiene al menos una imagen que procesar.
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     import tensorflow as tf
+    import keras
     import mlflow.keras
 
     tf.config.threading.set_intra_op_parallelism_threads(2)
     tf.config.threading.set_inter_op_parallelism_threads(2)
 
-    # Carga del modelo UNA sola vez para toda la partición, resuelta contra el
-    # mismo Model Registry que sirve la API (MODEL_URI, capturado por closure
-    # desde el driver). Requiere que cada nodo del cluster tenga acceso de red
-    # al tracking server y al artifact store de MLflow (variable de entorno
-    # MLFLOW_TRACKING_URI propagada vía spark.executorEnv en el submit).
-    modelo = mlflow.keras.load_model(MODEL_URI)
+    # Carga del modelo UNA sola vez para toda la partición, usando la misma
+    # fuente que sirve la API: MLflow Registry en producción o .keras local en
+    # desarrollo.
+    if USAR_MLFLOW:
+        modelo = mlflow.keras.load_model(MODEL_URI)
+    else:
+        modelo = keras.models.load_model(MODEL_URI, compile=False)
 
     @tf.function(input_signature=[tf.TensorSpec([None, IMG_SIZE, IMG_SIZE, 3], tf.float32)])
     def inferir(x):

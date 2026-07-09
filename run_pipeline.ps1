@@ -32,11 +32,12 @@ try {
     exit 1
 }
 
-# Verificar MLflow (pipeline_batch.py resuelve el modelo "champion" desde el
-# Model Registry, no desde un .keras local)
+# Informar fuente del modelo. Con MLFLOW_TRACKING_URI se usa el Registry; sin
+# esa variable se usa modelo_dermascan.keras local.
 if (-not $env:MLFLOW_TRACKING_URI) {
-    Write-Host "ERROR: MLFLOW_TRACKING_URI no esta definida." -ForegroundColor Red
-    exit 1
+    Write-Host "[INFO] MLFLOW_TRACKING_URI no esta definida; usando modelo_dermascan.keras local." -ForegroundColor Yellow
+} else {
+    Write-Host "[INFO] Usando MLflow Model Registry: $env:MLFLOW_TRACKING_URI" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -7,15 +7,15 @@
 #   ./run_pipeline.sh <ruta_imagenes> [<ruta_salida>]
 #
 # Ejemplos:
-#   ./run_pipeline.sh ./datos/HAM10000
-#   ./run_pipeline.sh ./datos/HAM10000 ./resultados
+#   ./run_pipeline.sh ./datos/HAM10000_ISIC
+#   ./run_pipeline.sh ./datos/HAM10000_ISIC ./resultados
 #   ./run_pipeline.sh /ruta/absoluta/imagenes /ruta/absoluta/salida
 #
 # Requisitos:
-#   - Python 3.8+ con pyspark, tensorflow-cpu, keras, opencv-python-headless
+#   - Python 3.11+ con pyspark, tensorflow, keras, opencv-python-headless
 #   - Java 11+ (requerido por Spark)
-#   - MLFLOW_TRACKING_URI (pipeline_batch.py resuelve el modelo "champion"
-#     desde el Model Registry, no desde un .keras local)
+#   - MLFLOW_TRACKING_URI opcional. Si existe, usa Model Registry; si no,
+#     usa modelo_dermascan.keras local.
 #
 # ============================================================================
 
@@ -32,10 +32,11 @@ if ! command -v java &> /dev/null; then
     exit 1
 fi
 
-# Verificar MLflow
+# Informar fuente del modelo
 if [ -z "$MLFLOW_TRACKING_URI" ]; then
-    echo "ERROR: MLFLOW_TRACKING_URI no está definida."
-    exit 1
+    echo "[INFO] MLFLOW_TRACKING_URI no está definida; usando modelo_dermascan.keras local."
+else
+    echo "[INFO] Usando MLflow Model Registry: $MLFLOW_TRACKING_URI"
 fi
 
 # Verificar argumentos

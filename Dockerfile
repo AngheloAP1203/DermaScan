@@ -7,17 +7,16 @@ COPY app.py ./
 COPY src/ ./src/
 COPY templates/ ./templates/
 # modelo_dermascan.onnx: generado localmente con `python convertir_onnx.py`
-# ANTES del build. Horneado en la imagen a proposito (prioridad = velocidad
-# de despliegue ya, no gobernanza) — el Fast Path (/analizar) lo usa directo,
-# sin red. src/modelo.py (TF, para /explicabilidad) SIGUE resolviendo desde
-# el Registry en runtime, así que MLFLOW_TRACKING_URI sigue siendo obligatoria.
+# ANTES del build. Horneado en la imagen a proposito: el Fast Path (/analizar)
+# lo usa directo, sin red.
 COPY modelo_dermascan.onnx ./
+COPY modelo_dermascan.keras ./
 EXPOSE 7860
 
-# src/modelo.py (TF) sigue resolviendo el modelo contra el Model Registry de
-# MLflow en arranque (alias "champion") — solo para /explicabilidad. Inyectar
-# en runtime, no en build (docker run -e / secretos del orquestador):
-#   MLFLOW_TRACKING_URI   servidor MLflow remoto (obligatoria)
+# En produccion, src/config.py resuelve el modelo contra el Model Registry de
+# MLflow en arranque (alias "champion"). En desarrollo local, si no se define
+# MLFLOW_TRACKING_URI, usa modelo_dermascan.keras horneado en la imagen:
+#   MLFLOW_TRACKING_URI   servidor MLflow remoto (produccion)
 #   MLFLOW_MODEL_NAME     opcional, default "dermascan-clasificador-piel"
 #   MLFLOW_MODEL_ALIAS    opcional, default "champion"
 
