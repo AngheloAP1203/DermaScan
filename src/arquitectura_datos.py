@@ -1,74 +1,72 @@
-"""
-Evidencia real (no simulada) del pipeline de datos a escala: cluster Spark
-standalone, data lake MinIO (S3) y broker Kafka, todos ejecutados como
-contenedores Docker independientes y verificados con comandos reales
-contra cada servicio (no valores escritos a mano).
+"""Contenido para la pagina /arquitectura.
 
-Esta evidencia se muestra en /arquitectura como una pagina de solo lectura.
-Deliberadamente el servicio de inferencia (/analizar) NO depende de Spark,
-Kafka ni MinIO: son el pipeline de datos offline (ingesta, integridad,
-trazabilidad, streaming), no el camino de prediccion en tiempo real. Meter
-Kafka o Spark en la ruta de /analizar seria arquitectonicamente incorrecto
-para una inferencia sincrona de una sola imagen.
+La pagina resume la arquitectura vigente de feature/MLflow y conserva, como
+evidencia historica, capturas del despliegue experimental que existia en main.
 """
 
-EVIDENCIA_SPARK = {
-    'titulo': 'Cluster Spark Standalone Real',
+ARQUITECTURA_API = {
+    'titulo': 'Servicio de inferencia Flask + ONNX Runtime',
     'descripcion': (
-        'Tres contenedores Docker independientes en red (dermascan-spark-master, '
-        'dermascan-spark-worker-1, dermascan-spark-worker-2), en vez de Spark en '
-        'modo local[*] (un unico proceso simulando un cluster).'
+        'La API separa el diagnostico rapido de los calculos pesados de '
+        'explicabilidad. /analizar usa ONNX Runtime y /explicabilidad usa '
+        'TensorFlow/Keras cuando se requieren Grad-CAM, ABCDE e incertidumbre.'
     ),
     'evidencia': [
-        'Master registro 2 workers reales por heartbeat: "Alive Workers: 2" (http://localhost:8080)',
-        'Job sometido con spark-submit contra spark://spark-master:7077',
-        '13,309 registros del manifiesto repartidos en 2 particiones, cada una procesada '
-        'en un contenedor fisicamente distinto (confirmado en los logs de stderr de cada worker)',
-        'Resultado del triage identico al esperado: ALERTA_DERMATOLOGO (HAM10000=1954, ISIC=1496), '
-        'SEGUIMIENTO_RUTINARIO (HAM10000=8059, ISIC=1800)',
-        'Tiempo de ejecucion en el cluster real de 2 workers: 48.75 s',
+        'POST /analizar recibe una imagen base64, valida calidad y responde clase, confianza, probabilidad, modo y riesgo.',
+        'El fast path carga modelo_dermascan.onnx mediante onnxruntime para evitar depender de TensorFlow en la ruta principal.',
+        'POST /explicabilidad agrupa Grad-CAM, analisis ABCDE, visualizaciones e incertidumbre MC Dropout fuera del camino rapido.',
+        'GET /salud y GET /metricas exponen estado operativo y metricas finales del modelo.',
     ],
 }
 
-EVIDENCIA_MINIO = {
-    'titulo': 'Data Lake Real (MinIO, protocolo S3)',
+ARQUITECTURA_MLOPS = {
+    'titulo': 'MLOps con MLflow y modo local reproducible',
     'descripcion': (
-        'Bucket real accesible por el protocolo S3 estandar (s3a://), no una carpeta '
-        'de Parquet en disco local.'
+        'En produccion, el modelo se resuelve desde MLflow Model Registry. En '
+        'desarrollo local, si no existe MLFLOW_TRACKING_URI, se usa el archivo '
+        'modelo_dermascan.keras incluido en el repositorio.'
     ),
     'evidencia': [
-        'Bucket "dermascan-datalake" creado con el cliente oficial de MinIO (mc mb)',
-        'Job de Spark escribio el resultado con el conector hadoop-aws (s3a://dermascan-datalake/...)',
-        'Verificado con "mc ls --recursive": _SUCCESS + 2 particiones Parquet '
-        '(354 KiB y 355 KiB) presentes en el bucket real',
-        'Mismo protocolo y llamadas que usaria un S3 real de AWS; unica diferencia es el '
-        'endpoint (http://minio:9000 en vez del endpoint de AWS)',
+        'MLflow usa el modelo dermascan-clasificador-piel y el alias champion como version aprobada.',
+        'Los umbrales umbral_optimo y umbral_screening se leen como tags de la version del modelo en produccion.',
+        'El modo local usa umbral balanceado 0.70 y screening 0.45 para que la app funcione sin servidor MLflow.',
+        'convertir_onnx.py puede convertir desde MLflow o desde el modelo Keras local, segun la configuracion disponible.',
     ],
 }
 
-EVIDENCIA_KAFKA = {
-    'titulo': 'Broker Kafka Real y Persistente',
+ARQUITECTURA_BATCH = {
+    'titulo': 'Pipeline batch con PySpark',
     'descripcion': (
-        'Broker Apache Kafka 3.7.0 en modo KRaft (sin ZooKeeper), como contenedor '
-        'Docker persistente e independiente del kernel de Kaggle donde se entrena el modelo.'
+        'El pipeline procesa lotes de imagenes dermatoscopicas con Spark, carga '
+        'el modelo una vez por particion y guarda resultados analiticos para '
+        'revision posterior.'
     ),
     'evidencia': [
-        'Topico "dermascan-imagenes" creado con 3 particiones reales',
-        'Productor real (kafka-python) publico las 13,309 filas del manifiesto: 2.63 s (~5,061 msg/s)',
-        'Conteo verificado DESDE EL PROPIO BROKER con kafka-get-offsets (no desde el productor): '
-        '4,491 + 4,412 + 4,406 = 13,309 mensajes',
-        'Consumidor Spark Structured Streaming (conector spark-sql-kafka-0-10) sometido al '
-        'cluster real de 2 workers leyo los 13,309 mensajes y agrego por clase/fuente',
-        'Conteos finales identicos, cifra por cifra, a la verificacion independiente del dataset: '
-        'Benigno/HAM10000=8059, Benigno/ISIC=1800, Maligno/HAM10000=1954, Maligno/ISIC=1496',
+        'spark.read.format("binaryFile") lee imagenes reales desde disco local o filesystems compatibles con Hadoop.',
+        'mapPartitions evita cargar el modelo por cada imagen y reduce la sobrecarga de serializacion.',
+        'La salida se persiste en Parquet, CSV distribuido y resumen JSON.',
+        'El mismo src.config.py alimenta a la API Flask y al pipeline batch para mantener modelo, tamano de imagen y umbral sincronizados.',
+    ],
+}
+
+EVIDENCIA_HISTORICA = {
+    'titulo': 'Evidencia historica de despliegue experimental',
+    'descripcion': (
+        'La rama main incluia capturas de un entorno experimental con Spark '
+        'standalone y MinIO. Se conservan como evidencia de pruebas previas, '
+        'pero no son requisito para ejecutar la rama feature/MLflow actual.'
+    ),
+    'evidencia': [
+        'Spark standalone fue usado como evidencia de procesamiento distribuido fuera de la API de inferencia.',
+        'MinIO fue usado como data lake compatible con S3 en la validacion experimental anterior.',
+        'La rama feature/MLflow actual documenta como camino soportado el pipeline PySpark batch y salidas Parquet/CSV/JSON.',
     ],
 }
 
 NOTA_ARQUITECTURA = (
-    'Este servicio web (el que estas usando ahora mismo para /analizar) es intencionalmente '
-    'independiente de Spark, Kafka y MinIO: son el pipeline de datos offline (integridad, '
-    'trazabilidad, streaming de ingesta), no el camino de inferencia en tiempo real. Mezclar '
-    'ambos reintroduciria la misma contradiccion de latencia que ya se corrigio en la seccion '
-    'de resultados del informe (ver /metricas). El cluster completo (docker-compose con Spark, '
-    'MinIO y Kafka) es reproducible y se documenta en el repositorio del proyecto.'
+    'La inferencia sincrona de una imagen no debe depender de Spark, Kafka ni '
+    'MinIO. Esos componentes pertenecen a la arquitectura de datos offline o '
+    'experimental. El camino de usuario en tiempo real se mantiene en Flask + '
+    'ONNX Runtime, y los procesos de gobierno del modelo se resuelven con '
+    'MLflow cuando esta configurado.'
 )

@@ -3,89 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DermaScan – Arquitectura de Datos</title>
+<title>DermaScan - Arquitectura</title>
 <style>
   :root{
-    --bg:#0a1628; --bg2:#0d1b2e; --card:#13243d; --card2:#1a2f4d; --line:rgba(255,255,255,.08);
-    --accent:#22d3ee; --accent2:#2dd4bf; --success:#34d399; --danger:#f87171; --warn:#fbbf24;
+    --bg:#0a1628; --card:#13243d; --card2:#1a2f4d; --line:rgba(255,255,255,.10);
+    --accent:#22d3ee; --accent2:#2dd4bf; --success:#34d399; --warn:#fbbf24;
     --text:#e6eef8; --muted:#8aa0bb;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-    background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(34,211,238,.10),transparent 55%),
-               radial-gradient(ellipse 60% 50% at 90% 20%,rgba(45,212,191,.08),transparent 55%)}
-  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:32px 24px 60px}
-  a.back{color:var(--accent);text-decoration:none;font-size:.85rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-bottom:18px}
+  body{font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 24px 60px}
+  a.back{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:700;display:inline-flex;margin-bottom:18px}
   a.back:hover{text-decoration:underline}
-  h1{font-size:1.7rem;font-weight:800;color:#fff;margin-bottom:6px}
+  h1{font-size:1.8rem;color:#fff;margin-bottom:8px}
   h1 span{color:var(--accent)}
-  .sub{color:var(--muted);font-size:.92rem;margin-bottom:26px;max-width:680px;line-height:1.5}
-  .nota{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:12px;
-    padding:14px 16px;font-size:.82rem;color:#fde9b8;line-height:1.55;margin-bottom:30px}
-  .nota b{color:var(--warn)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:20px;
-    box-shadow:0 8px 30px rgba(0,0,0,.25)}
-  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-  .card-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-size:18px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06283d}
-  .card h2{font-size:1.08rem;font-weight:800;color:#fff}
-  .card .desc{color:var(--muted);font-size:.83rem;margin:8px 0 14px;line-height:1.5}
-  ul.ev{list-style:none;display:flex;flex-direction:column;gap:8px}
-  ul.ev li{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
-    font-size:.82rem;line-height:1.5;position:relative;padding-left:30px}
-  ul.ev li::before{content:'✓';position:absolute;left:11px;top:10px;color:var(--success);font-weight:800}
-  code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px;font-size:.78rem;color:var(--accent2)}
-  .cap-label{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:var(--accent2);
-    text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
-  .cap-label::before{content:'📷';font-size:.9rem}
-  .captura{width:100%;border-radius:10px;border:1px solid var(--line);display:block;
-    box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:zoom-in}
-  .footer-links{display:flex;gap:14px;margin-top:24px;flex-wrap:wrap}
-  .footer-links a{color:var(--muted);font-size:.78rem;text-decoration:none;border:1px solid var(--line);
-    padding:8px 14px;border-radius:8px}
-  .footer-links a:hover{color:var(--text);border-color:var(--accent)}
+  .sub{color:var(--muted);font-size:.94rem;margin-bottom:24px;line-height:1.55;max-width:760px}
+  .nota{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.30);border-radius:10px;
+    padding:14px 16px;font-size:.84rem;color:#fde9b8;line-height:1.55;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,.24)}
+  .wide{grid-column:1 / -1}
+  .card h2{font-size:1.02rem;color:#fff;margin-bottom:8px}
+  .desc{color:var(--muted);font-size:.84rem;line-height:1.5;margin-bottom:12px}
+  ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  li{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:9px 12px 9px 28px;
+    font-size:.82rem;line-height:1.45;position:relative}
+  li::before{content:'✓';position:absolute;left:10px;top:9px;color:var(--success);font-weight:800}
+  .evidence-note{margin-top:14px;border:1px dashed rgba(45,212,191,.35);border-radius:8px;
+    padding:12px;color:#c7f9f3;font-size:.82rem;line-height:1.5;background:rgba(45,212,191,.06)}
+  .links{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .links a{color:var(--muted);font-size:.78rem;text-decoration:none;border:1px solid var(--line);
+    padding:8px 12px;border-radius:8px}
+  .links a:hover{color:var(--text);border-color:var(--accent)}
+  @media(max-width:820px){
+    .grid{grid-template-columns:1fr}
+    .wide{grid-column:auto}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <a class="back" href="/">&larr; Volver al análisis</a>
-  <h1>Arquitectura de <span>Datos</span></h1>
-  <p class="sub">Evidencia real del pipeline de datos a escala que respalda a DermaScan: un clúster Spark
-  standalone, un data lake compatible con S3 (MinIO) y un broker Kafka, ejecutados como contenedores Docker
-  reales y verificados con comandos directos contra cada servicio — no simulados ni escritos a mano.</p>
+<main class="wrap">
+  <a class="back" href="/">&larr; Volver al analizador</a>
+  <h1>Arquitectura de <span>DermaScan</span></h1>
+  <p class="sub">Vista tecnica de la rama feature/MLflow: inferencia rapida con ONNX Runtime,
+  explicabilidad separada, gobierno con MLflow y procesamiento batch con PySpark.</p>
 
-  <div class="nota"><b>Nota de diseño.</b> {{ nota }}</div>
+  <div class="nota">{{ nota }}</div>
 
-  <div class="card">
-    <div class="card-head"><div class="card-icon">🖧</div><h2>{{ spark.titulo }}</h2></div>
-    <p class="desc">{{ spark.descripcion }}</p>
-    <ul class="ev">{% for item in spark.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
-    <div class="cap-label">Captura real: UI del master (localhost:8080)</div>
-    <img class="captura" src="{{ url_for('static', filename='evidencia/spark_master.png') }}"
-         alt="Spark Master UI mostrando Alive Workers: 2 y la aplicacion DermaScan_Kafka_Consumer_Cluster FINISHED">
+  <section class="grid">
+    <article class="card">
+      <h2>{{ api.titulo }}</h2>
+      <p class="desc">{{ api.descripcion }}</p>
+      <ul>{% for item in api.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+    </article>
+
+    <article class="card">
+      <h2>{{ mlops.titulo }}</h2>
+      <p class="desc">{{ mlops.descripcion }}</p>
+      <ul>{% for item in mlops.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+    </article>
+
+    <article class="card">
+      <h2>{{ batch.titulo }}</h2>
+      <p class="desc">{{ batch.descripcion }}</p>
+      <ul>{% for item in batch.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+    </article>
+
+    <article class="card wide">
+      <h2>{{ historica.titulo }}</h2>
+      <p class="desc">{{ historica.descripcion }}</p>
+      <ul>{% for item in historica.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
+      <div class="evidence-note">
+        Las capturas de main estaban versionadas con Git LFS. Para mostrarlas
+        nuevamente se deben recuperar los binarios reales con Git LFS o
+        reemplazarlas por nuevas capturas del despliegue actual.
+      </div>
+    </article>
+  </section>
+
+  <div class="links">
+    <a href="/metricas">Ver /metricas</a>
+    <a href="/salud">Ver /salud</a>
+    <a href="/">Analizador</a>
   </div>
-
-  <div class="card">
-    <div class="card-head"><div class="card-icon">🪣</div><h2>{{ minio.titulo }}</h2></div>
-    <p class="desc">{{ minio.descripcion }}</p>
-    <ul class="ev">{% for item in minio.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
-    <div class="cap-label">Captura real: consola de MinIO, bucket dermascan-datalake</div>
-    <img class="captura" src="{{ url_for('static', filename='evidencia/minio_bucket.png') }}"
-         alt="Consola de MinIO mostrando el bucket dermascan-datalake con _SUCCESS y 2 particiones Parquet reales">
-  </div>
-
-  <div class="card">
-    <div class="card-head"><div class="card-icon">📡</div><h2>{{ kafka.titulo }}</h2></div>
-    <p class="desc">{{ kafka.descripcion }}</p>
-    <ul class="ev">{% for item in kafka.evidencia %}<li>{{ item }}</li>{% endfor %}</ul>
-  </div>
-
-  <div class="footer-links">
-    <a href="/metricas">Ver /metricas (JSON)</a>
-    <a href="/salud">Ver /salud (JSON)</a>
-    <a href="/">Volver al analizador</a>
-  </div>
-</div>
+</main>
 </body>
 </html>

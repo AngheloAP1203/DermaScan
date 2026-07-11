@@ -1,7 +1,29 @@
 __pycache__/
 *.pyc
+.pytest_cache/
 .claude/
+.venv/
+.env
+
+# MLflow local (tracking/artifacts) — la fuente de verdad es el server remoto
 mlruns/
+mlartifacts/
+mlflow.db
+
+# Modelo .keras: viven versionados en MLflow como fuente de verdad, pero se
+# trackea via Git LFS (ver .gitattributes) porque el Dockerfile lo necesita
+# horneado en la imagen para el fallback local sin MLflow. El .onnx (derivado
+# del .keras via convertir_onnx.py) tambien se trackea via LFS por la misma
+# razon: el Fast Path de /analizar lo requiere presente en la imagen.
+modelo_dermascan.keras
+*.h5
+
+# Salidas de pipeline_batch.py / registrar_experimento.py
+resultados/
+resultados_spark*/
+predicciones_val.csv
+
 Imagenes de prueba/
 dermascan_despliegue.zip
 dermascan_despliegue/
+Thumbs.db

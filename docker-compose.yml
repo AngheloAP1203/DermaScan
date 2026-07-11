@@ -1,0 +1,105 @@
+services:
+  mlflow:
+    build: .
+    image: dermascan:2.0
+    container_name: dermascan-mlflow
+    command:
+      - python
+      - -m
+      - mlflow
+      - server
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --serve-artifacts
+      - --artifacts-destination
+      - /mlflow/artifacts
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5001"
+      - --allowed-hosts
+      - "*"
+      # Sin esto, mlflow calcula el numero de workers en base a los nucleos
+      # del HOST (2xN+1) sin importar mem_limit — con 12 nucleos eso son
+      # 8+ procesos, cada uno con su propio interprete de Python cargado,
+      # lo que superaba 1g y provocaba un OOM-kill silencioso a los pocos
+      # segundos de arrancar (el healthcheck alcanzaba a pasar UNA vez antes
+      # de la caida, asi que "registrar"/"app" quedaban esperando para
+      # siempre a un mlflow que ya no existia). 2 workers alcanza de sobra
+      # para uso local.
+      - --workers
+      - "2"
+    ports:
+      - "5001:5001"
+    volumes:
+      - mlflow-data:/mlflow
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5).read()"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 2g
+
+  registrar:
+    image: dermascan:2.0
+    container_name: dermascan-registrar
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5001
+    mem_limit: 2g
+    command:
+      - python
+      - registrar_experimento.py
+      - --modelo
+      - modelo_dermascan.keras
+      - --dataset
+      - HAM10000 + ISIC (13309 imagenes fusionadas y deduplicadas)
+      - --umbral-optimo
+      - "0.70"
+      - --umbral-screening
+      - "0.45"
+      - --accuracy
+      - "0.9239"
+      - --auc-roc
+      - "0.9706"
+      - --fuente
+      - Informe/metricas finales del entrenamiento EfficientNetB4; test set independiente de 1997 imagenes.
+      - --promover
+      - --skip-si-alias-existe
+    restart: "no"
+
+  app:
+    image: dermascan:2.0
+    container_name: dermascan-app
+    depends_on:
+      mlflow:
+        condition: service_healthy
+      registrar:
+        condition: service_completed_successfully
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5001
+      MLFLOW_MODEL_NAME: dermascan-clasificador-piel
+      MLFLOW_MODEL_ALIAS: champion
+      # Ver Dockerfile: 2 workers x 2 threads por defecto, pensado para
+      # correr junto a los otros dos servicios en una laptop de desarrollo.
+      GUNICORN_WORKERS: "2"
+      GUNICORN_THREADS: "2"
+    ports:
+      - "7860:7860"
+    restart: unless-stopped
+    # Limite duro de RAM: cada worker carga TF/Keras + ONNX Runtime en
+    # memoria. Sin este limite, un pico de carga (varias tecnicas XAI
+    # concurrentes) podia consumir toda la RAM del host y colgar la maquina
+    # en vez de solo este contenedor. Subir si el host tiene mas memoria
+    # disponible.
+    mem_limit: 3g
+
+volumes:
+  mlflow-data:
