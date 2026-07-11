@@ -25,6 +25,23 @@ def _localizar_conv_y_base():
     return None, _buscar_ultima_conv(modelo)
 
 
+# Grad-model construido UNA sola vez al importar el modulo, no en cada
+# request. `keras.models.Model(...)` muta el bookkeeping interno de las
+# capas (inbound_nodes) que reutiliza de `modelo`; reconstruirlo en cada
+# peticion, desde threads de gunicorn distintos ejecutando en paralelo sobre
+# las mismas capas compartidas, no es thread-safe y podia producir corrupcion
+# de estado o crashes nativos bajo carga concurrente.
+_BASE, _CONV = _localizar_conv_y_base()
+if _CONV is None:
+    _GRAD_MODEL, _COLA = None, None
+elif _BASE is None:
+    _GRAD_MODEL = keras.models.Model(modelo.inputs, [_CONV.output, modelo.output])
+    _COLA = None
+else:
+    _GRAD_MODEL = keras.models.Model(_BASE.inputs, [_CONV.output, _BASE.output])
+    _COLA = modelo.layers[modelo.layers.index(_BASE) + 1:]
+
+
 def heatmap_array(tensor):
     """API pública: mapa Grad-CAM normalizado [0,1] como ndarray (para comparativas)."""
     return _heatmap(tensor)
@@ -32,25 +49,20 @@ def heatmap_array(tensor):
 
 def _heatmap(tensor):
     """Grad-CAM clásico robusto. Devuelve ndarray HxW normalizado [0,1]."""
-    base, conv = _localizar_conv_y_base()
-    if conv is None:
+    if _CONV is None:
         raise ValueError("no se encontró capa convolucional")
 
-    if base is None:
+    if _COLA is None:
         # Modelo plano: la capa conv es accesible desde la entrada del modelo
-        grad_model = keras.models.Model(modelo.inputs, [conv.output, modelo.output])
         with tf.GradientTape() as tape:
-            conv_out, pred = grad_model(tensor, training=False)
+            conv_out, pred = _GRAD_MODEL(tensor, training=False)
             score = pred[:, 0]
         grads = tape.gradient(score, conv_out)
     else:
         # Modelo anidado: grad-model sobre el submodelo base + reejecutar la cola
-        sub = keras.models.Model(base.inputs, [conv.output, base.output])
-        idx_base = modelo.layers.index(base)
-        cola = modelo.layers[idx_base + 1:]
         with tf.GradientTape() as tape:
-            conv_out, x = sub(tensor, training=False)
-            for capa in cola:
+            conv_out, x = _GRAD_MODEL(tensor, training=False)
+            for capa in _COLA:
                 x = capa(x, training=False)
             score = x[:, 0]
         grads = tape.gradient(score, conv_out)

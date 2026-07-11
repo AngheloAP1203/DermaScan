@@ -53,6 +53,7 @@ import mlflow
 import mlflow.keras
 import keras
 from mlflow.tracking import MlflowClient
+from mlflow.exceptions import MlflowException
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score, f1_score
 
 
@@ -139,11 +140,25 @@ def main():
     ap.add_argument('--promover', action='store_true',
                      help='Asigna el alias "champion" a la version registrada. '
                           'Sin este flag, el modelo queda registrado pero NO sirve produccion.')
+    ap.add_argument('--skip-si-alias-existe', action='store_true',
+                     help='No registra una nueva version si el alias "champion" ya existe. '
+                          'Util para docker compose up repetidos.')
     args = ap.parse_args()
 
     tracking_uri = os.environ['MLFLOW_TRACKING_URI']  # sin default: falla explicito
     mlflow.set_tracking_uri(tracking_uri)
     client = MlflowClient(tracking_uri=tracking_uri)
+
+    if args.skip_si_alias_existe:
+        try:
+            mv_actual = client.get_model_version_by_alias(args.modelo_registrado, 'champion')
+            print(
+                f"[OK] Alias 'champion' ya existe para "
+                f"{args.modelo_registrado} v{mv_actual.version}. No se registra otra version."
+            )
+            return
+        except MlflowException:
+            pass
 
     umbral_optimo, umbral_screening, metricas, fuente, calculado = _resolver_umbrales_y_metricas(args)
 

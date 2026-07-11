@@ -16,6 +16,10 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
   pipeline_batch.py          Pipeline batch con PySpark
   requirements.txt           Dependencias de runtime
   Dockerfile                 Imagen de despliegue con Gunicorn
+  docker-compose.yml         Levanta app + MLflow + registro champion
+  run_mlflow.ps1             Levanta MLflow local en Windows
+  run_mlflow.sh              Levanta MLflow local en Linux/macOS
+  .env.example               Variables de entorno de referencia
 
 ========================================================
 ## PASO 1 - Instalar dependencias
@@ -30,7 +34,38 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
   pip install tf2onnx
 
 ========================================================
-## PASO 2 - Fuente del modelo
+## PASO 2 - Levantar todo con Docker Compose
+========================================================
+
+  Este es el modo recomendado para despliegue local completo:
+
+    docker compose up --build
+
+  Servicios:
+
+    dermascan-mlflow     MLflow Tracking Server + Model Registry
+    dermascan-registrar  Registra/promueve el modelo como alias champion
+    dermascan-app        API Flask/Gunicorn consumiendo MLflow
+
+  URLs:
+
+    App DermaScan:  http://localhost:7860
+    MLflow UI:      http://localhost:5001
+
+  El registro es idempotente: si el alias champion ya existe, no crea una
+  version nueva del modelo. Los datos de MLflow persisten en el volumen Docker
+  mlflow-data.
+
+  Para detener:
+
+    docker compose down
+
+  Para borrar tambien el Registry/artefactos locales de MLflow:
+
+    docker compose down -v
+
+========================================================
+## PASO 3 - Fuente del modelo
 ========================================================
 
   ### Opcion A: desarrollo local sin MLflow
@@ -52,11 +87,40 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
 
   ### Opcion B: produccion con MLflow Model Registry
 
-  Configurar:
+  Primero levantar o apuntar a un servidor MLflow.
 
-    $env:MLFLOW_TRACKING_URI="https://<tu-servidor-mlflow>"
+  Para desarrollo local en Windows:
 
-  Registrar/promover el modelo:
+    .\run_mlflow.ps1
+
+  Si la API Flask correra dentro de Docker y MLflow en tu PC, exponer MLflow
+  en todas las interfaces para que el contenedor pueda conectarse:
+
+    .\run_mlflow.ps1 -HostAddress 0.0.0.0
+
+  Para Linux/macOS:
+
+    ./run_mlflow.sh
+
+  Luego, en otra terminal, configurar:
+
+    $env:MLFLOW_TRACKING_URI="http://127.0.0.1:5001"
+    $env:MLFLOW_MODEL_NAME="dermascan-clasificador-piel"
+    $env:MLFLOW_MODEL_ALIAS="champion"
+
+  Registrar/promover el modelo usando metricas ya documentadas:
+
+    python registrar_experimento.py `
+        --modelo modelo_dermascan.keras `
+        --dataset "HAM10000 + ISIC (13309 imagenes fusionadas y deduplicadas)" `
+        --umbral-optimo 0.70 `
+        --umbral-screening 0.45 `
+        --accuracy 0.9239 `
+        --auc-roc 0.9706 `
+        --fuente "Informe/metricas finales del entrenamiento EfficientNetB4; test set independiente de 1997 imagenes." `
+        --promover
+
+  Alternativamente, si se cuenta con predicciones reales y_true,y_score:
 
     python registrar_experimento.py `
         --modelo modelo_dermascan.keras `
@@ -68,6 +132,10 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
 
     champion
 
+  Verificar desde Python:
+
+    python -c "import src.config as c; print(c.USAR_MLFLOW, c.MODEL_URI, c.UMBRAL, c.MODOS)"
+
   En produccion, la API Flask y el pipeline Spark leen el modelo y los
   umbrales desde MLflow Model Registry mediante los tags:
 
@@ -75,7 +143,7 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
     umbral_screening
 
 ========================================================
-## PASO 3 - Generar modelo ONNX
+## PASO 4 - Generar modelo ONNX
 ========================================================
 
   python convertir_onnx.py
@@ -84,7 +152,7 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
   Con MLFLOW_TRACKING_URI, convierte el modelo champion desde MLflow.
 
 ========================================================
-## PASO 4 - Correr el servidor web
+## PASO 5 - Correr el servidor web sin Compose
 ========================================================
 
   ### Opcion A: Python directo
@@ -97,15 +165,28 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
     gunicorn --bind 0.0.0.0:7860 --workers 4 --threads 4 --worker-class gthread app:app
     Abre: http://localhost:7860
 
-  ### Opcion C: Docker
+  ### Opcion C: Docker simple, sin MLflow
 
     docker build -t dermascan:2.0 .
     docker run -p 7860:7860 dermascan:2.0
     Abre: http://localhost:7860
 
-  Para produccion con MLflow:
+  Para produccion con MLflow externo:
 
     docker run -p 7860:7860 -e MLFLOW_TRACKING_URI="https://<tu-servidor-mlflow>" dermascan:2.0
+
+  Si el MLflow local corre en tu PC y la app corre dentro de Docker en Windows:
+
+    docker run -p 7860:7860 `
+      -e MLFLOW_TRACKING_URI="http://host.docker.internal:5001" `
+      -e MLFLOW_MODEL_NAME="dermascan-clasificador-piel" `
+      -e MLFLOW_MODEL_ALIAS="champion" `
+      dermascan:2.0
+
+  Nota: run_mlflow.ps1/run_mlflow.sh usan MLflow Artifact Proxy
+  (--serve-artifacts) y guardan artefactos en ./mlartifacts. Esto permite que
+  clientes remotos o contenedores descarguen el modelo desde el servidor
+  MLflow por HTTP, sin depender de rutas locales del host.
 
 ========================================================
 ## PIPELINE BATCH CON PYSPARK
@@ -136,6 +217,7 @@ Datos    : 13,309 imagenes fusionadas y deduplicadas | Test: 1,997 imagenes
   GET  /                Interfaz web principal
   GET  /salud           Health-check del modelo/configuracion
   GET  /metricas        Metricas finales del modelo
+  GET  /arquitectura    Vista tecnica de API, MLOps y pipeline batch
   GET  /roc             Curva ROC en base64
   POST /analizar        Fast path ONNX: diagnostico principal
   POST /predict         Alias de /analizar

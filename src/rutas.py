@@ -19,6 +19,10 @@ from .incertidumbre import mc_dropout, incertidumbre_rapida
 from .integrated import integrated_gradients
 from .calidad import evaluar_calidad
 from .roc import curva_roc_b64
+from .arquitectura_datos import (
+    ARQUITECTURA_API, ARQUITECTURA_MLOPS, ARQUITECTURA_BATCH,
+    EVIDENCIA_HISTORICA, NOTA_ARQUITECTURA,
+)
 
 bp = Blueprint('dermascan', __name__)
 
@@ -50,87 +54,29 @@ def metricas():
     return jsonify(METRICAS_MODELO)
 
 
+@bp.route('/arquitectura')
+def arquitectura():
+    return render_template(
+        'arquitectura.html',
+        api=ARQUITECTURA_API,
+        mlops=ARQUITECTURA_MLOPS,
+        batch=ARQUITECTURA_BATCH,
+        historica=EVIDENCIA_HISTORICA,
+        nota=NOTA_ARQUITECTURA,
+    )
+
+
 @bp.route('/roc')
 def roc():
     return jsonify({'roc_b64': curva_roc_b64()})
 
 
-@bp.route('/tta', methods=['POST'])
-def tta_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(tta(img_rgb))
-
-
-@bp.route('/oclusion', methods=['POST'])
-def oclusion_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(oclusion(img_rgb))
-
-
-@bp.route('/robustez', methods=['POST'])
-def robustez_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(robustez(img_rgb))
-
-
-@bp.route('/canales', methods=['POST'])
-def canales_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(analisis_canales(img_rgb))
-
-
-@bp.route('/comparar', methods=['POST'])
-def comparar_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    tensor  = preprocesar(img_rgb)
-    return jsonify(comparar(tensor, img_rgb))
-
-
-@bp.route('/saliency', methods=['POST'])
-def saliency_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(saliency(img_rgb))
-
-
-@bp.route('/deteccion', methods=['POST'])
-def deteccion_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(deteccion_ventana(img_rgb))
-
-
-@bp.route('/incertidumbre', methods=['POST'])
-def incertidumbre_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(mc_dropout(img_rgb))
-
-
-@bp.route('/integrated', methods=['POST'])
-def integrated_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(integrated_gradients(img_rgb))
-
-
-@bp.route('/enfocado', methods=['POST'])
-def enfocado_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(diagnostico_enfocado(img_rgb))
-
-
-@bp.route('/ruido', methods=['POST'])
-def ruido_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(robustez_ruido(img_rgb))
-
-
-@bp.route('/calidad', methods=['POST'])
-def calidad_endpoint():
-    img_rgb = decodificar(request.get_json()['imagen'])
-    return jsonify(evaluar_calidad(img_rgb))
-
-
 def _decodificar_o_400(datos):
     """Decodifica el campo 'imagen' o devuelve None + la respuesta de error
-    ya lista para retornar. Compartido entre /analizar y /explicabilidad."""
+    ya lista para retornar. Compartido por todos los endpoints que reciben
+    una imagen: sin esto, un payload sin 'imagen' o una imagen corrupta
+    tiraba una KeyError/excepcion de OpenCV sin manejar (500 crudo) en vez
+    de un 400 legible."""
     if not datos or 'imagen' not in datos:
         return None, (jsonify({'error': 'Solicitud invalida: falta el campo "imagen".'}), 400)
     try:
@@ -140,6 +86,103 @@ def _decodificar_o_400(datos):
     except Exception:
         return None, (jsonify({'error': 'No se pudo decodificar la imagen. Envie una imagen valida en base64.'}), 400)
     return img_rgb, None
+
+
+@bp.route('/tta', methods=['POST'])
+def tta_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(tta(img_rgb))
+
+
+@bp.route('/oclusion', methods=['POST'])
+def oclusion_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(oclusion(img_rgb))
+
+
+@bp.route('/robustez', methods=['POST'])
+def robustez_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(robustez(img_rgb))
+
+
+@bp.route('/canales', methods=['POST'])
+def canales_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(analisis_canales(img_rgb))
+
+
+@bp.route('/comparar', methods=['POST'])
+def comparar_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    tensor = preprocesar(img_rgb)
+    return jsonify(comparar(tensor, img_rgb))
+
+
+@bp.route('/saliency', methods=['POST'])
+def saliency_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(saliency(img_rgb))
+
+
+@bp.route('/deteccion', methods=['POST'])
+def deteccion_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(deteccion_ventana(img_rgb))
+
+
+@bp.route('/incertidumbre', methods=['POST'])
+def incertidumbre_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(mc_dropout(img_rgb))
+
+
+@bp.route('/integrated', methods=['POST'])
+def integrated_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(integrated_gradients(img_rgb))
+
+
+@bp.route('/enfocado', methods=['POST'])
+def enfocado_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(diagnostico_enfocado(img_rgb))
+
+
+@bp.route('/ruido', methods=['POST'])
+def ruido_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(robustez_ruido(img_rgb))
+
+
+@bp.route('/calidad', methods=['POST'])
+def calidad_endpoint():
+    img_rgb, error = _decodificar_o_400(request.get_json(silent=True))
+    if error:
+        return error
+    return jsonify(evaluar_calidad(img_rgb))
 
 
 @bp.route('/analizar', methods=['POST'])

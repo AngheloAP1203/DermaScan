@@ -1,0 +1,21 @@
+.git/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/
+.agents/
+
+mlruns/
+mlartifacts/
+mlflow.db
+resultados/
+resultados_spark*/
+dermascan_despliegue/
+
+Imagenes de prueba/
+*.zip
+*.docx
+*.pdf
+
+.env

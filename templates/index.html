@@ -278,14 +278,48 @@
 
   footer{text-align:center;margin-top:40px;font-size:.76rem;color:var(--muted);line-height:1.8}
   #fi{display:none}
+
+  /* Iconos (sprite SVG, ver <symbol> al inicio del <body>) — reemplazan los
+     emojis por un set de linea consistente, coloreado via currentColor. */
+  .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex-shrink:0;
+    fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+<defs>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="3"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 6h6v6"/></symbol>
+  <symbol id="i-bars" viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22a6 6 0 0 0 6-6c0-3-2-4-3-6-1 2-2 2-2 4 0-3-1-5-3-7-1 3-4 5-4 9a6 6 0 0 0 6 6z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.6 2.4c-.9.5-1.6 1-1.6 2.4"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16.5" cy="11.5" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="M20.5 20.5L15 15"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2L13 13l-3.8 1.8L11 11z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 2v6.3L4.2 18a2 2 0 0 0 1.8 3h12a2 2 0 0 0 1.8-3L15 8.3V2"/><path d="M8.5 2h7"/><path d="M6.5 15h11"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h6v18H6a2 2 0 0 0-2 2z"/><path d="M20 5a2 2 0 0 0-2-2h-6v18h6a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2 20h20z"/><path d="M12 9.5v4.2"/><circle cx="12" cy="17" r=".7" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-check-sm" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-fog" viewBox="0 0 24 24"><path d="M4 8h13a2.5 2.5 0 1 0-2-4"/><path d="M4 16h11"/><path d="M4 12h16"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 6h3.5l7 12H18"/><path d="M15 6h3l-2.5-2.5M18 6l-2.5 2.5"/><path d="M4 18h3.5l3-5.2"/><path d="M15 18h3l-2.5-2.5M18 18l-2.5 2.5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9"/><circle cx="14" cy="6" r="2"/><path d="M17 6h3"/><path d="M4 12h3"/><circle cx="8" cy="12" r="2"/><path d="M11 12h9"/><path d="M4 18h11"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M18 13l-6 6-6-6"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+</defs>
+</svg>
 <div class="app">
 
   <aside class="sidebar">
     <div class="sb-logo">
-      <div class="sb-logo-icon">✚</div>
+      <div class="sb-logo-icon"><svg class="icon"><use href="#i-cross"></use></svg></div>
       <div><div class="sb-title">Derma<span>Scan</span></div><div class="sb-sub">Análisis de lesiones cutáneas</div></div>
     </div>
 
@@ -294,27 +328,27 @@
       <span class="sb-badge">HAM10000 + ISIC · UPAO 2026</span>
     </div>
 
-    <button class="sb-btn-metricas" onclick="toggleMetricas()">📈 Rendimiento del modelo</button>
+    <button class="sb-btn-metricas" onclick="toggleMetricas()"><svg class="icon"><use href="#i-trend"></use></svg> Rendimiento del modelo</button>
 
     <div class="sb-navlabel">Análisis</div>
     <div class="sb-nav" id="sb-nav">
-      <button class="nav-btn active sb-disabled" data-page="diag" onclick="setPage('diag')"><span class="ico">🩺</span><span class="lbl">Diagnóstico</span></button>
-      <button class="nav-btn sb-disabled" data-page="explica" onclick="setPage('explica')"><span class="ico">🔥</span><span class="lbl">Explicabilidad</span><span class="nav-dot" id="dot-explica"></span></button>
-      <button class="nav-btn sb-disabled" data-page="deteccion" onclick="setPage('deteccion')"><span class="ico">📍</span><span class="lbl">Detección</span><span class="nav-dot" id="dot-deteccion"></span></button>
-      <button class="nav-btn sb-disabled" data-page="incert" onclick="setPage('incert')"><span class="ico">❓</span><span class="lbl">Incertidumbre</span><span class="nav-dot" id="dot-incert"></span></button>
-      <button class="nav-btn sb-disabled" data-page="vis" onclick="setPage('vis')"><span class="ico">🎨</span><span class="lbl">Visión</span></button>
-      <button class="nav-btn sb-disabled" data-page="abcde" onclick="setPage('abcde')"><span class="ico">🔬</span><span class="lbl">ABCDE</span></button>
-      <button class="nav-btn sb-disabled" data-page="consenso" onclick="setPage('consenso')"><span class="ico">🧭</span><span class="lbl">Consenso</span><span class="nav-dot" id="dot-consenso"></span></button>
-      <button class="nav-btn sb-disabled" data-page="avanzado" onclick="setPage('avanzado')"><span class="ico">🧪</span><span class="lbl">Avanzado</span></button>
-      <button class="nav-btn" data-page="evolucion" onclick="setPage('evolucion')"><span class="ico">📈</span><span class="lbl">Evolución</span></button>
-      <button class="nav-btn sb-disabled" data-page="guia" onclick="setPage('guia')"><span class="ico">📖</span><span class="lbl">Guía</span></button>
+      <button class="nav-btn active sb-disabled" data-page="diag" onclick="setPage('diag')"><span class="ico"><svg class="icon"><use href="#i-activity"></use></svg></span><span class="lbl">Diagnóstico</span></button>
+      <button class="nav-btn sb-disabled" data-page="explica" onclick="setPage('explica')"><span class="ico"><svg class="icon"><use href="#i-flame"></use></svg></span><span class="lbl">Explicabilidad</span><span class="nav-dot" id="dot-explica"></span></button>
+      <button class="nav-btn sb-disabled" data-page="deteccion" onclick="setPage('deteccion')"><span class="ico"><svg class="icon"><use href="#i-pin"></use></svg></span><span class="lbl">Detección</span><span class="nav-dot" id="dot-deteccion"></span></button>
+      <button class="nav-btn sb-disabled" data-page="incert" onclick="setPage('incert')"><span class="ico"><svg class="icon"><use href="#i-help"></use></svg></span><span class="lbl">Incertidumbre</span><span class="nav-dot" id="dot-incert"></span></button>
+      <button class="nav-btn sb-disabled" data-page="vis" onclick="setPage('vis')"><span class="ico"><svg class="icon"><use href="#i-palette"></use></svg></span><span class="lbl">Visión</span></button>
+      <button class="nav-btn sb-disabled" data-page="abcde" onclick="setPage('abcde')"><span class="ico"><svg class="icon"><use href="#i-search"></use></svg></span><span class="lbl">ABCDE</span></button>
+      <button class="nav-btn sb-disabled" data-page="consenso" onclick="setPage('consenso')"><span class="ico"><svg class="icon"><use href="#i-compass"></use></svg></span><span class="lbl">Consenso</span><span class="nav-dot" id="dot-consenso"></span></button>
+      <button class="nav-btn sb-disabled" data-page="avanzado" onclick="setPage('avanzado')"><span class="ico"><svg class="icon"><use href="#i-flask"></use></svg></span><span class="lbl">Avanzado</span></button>
+      <button class="nav-btn" data-page="evolucion" onclick="setPage('evolucion')"><span class="ico"><svg class="icon"><use href="#i-trend"></use></svg></span><span class="lbl">Evolución</span></button>
+      <button class="nav-btn sb-disabled" data-page="guia" onclick="setPage('guia')"><span class="ico"><svg class="icon"><use href="#i-book"></use></svg></span><span class="lbl">Guía</span></button>
     </div>
   </aside>
 
   <div class="content">
 
     <div id="panel-metricas">
-      <div class="section-title">📈 Rendimiento del modelo (prueba · 1503 imágenes)</div>
+      <div class="section-title"><svg class="icon"><use href="#i-trend"></use></svg> Rendimiento del modelo (prueba · 1503 imágenes)</div>
       <div class="mm-grid" id="mm-grid"></div>
       <div class="section-title" style="font-size:.88rem">Matriz de confusión</div>
       <table class="mm-tab" id="mm-confusion"></table>
@@ -339,7 +373,7 @@
 
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()"
          ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-      <div class="drop-icon">🩺</div>
+      <div class="drop-icon"><svg class="icon"><use href="#i-activity"></use></svg></div>
       <div class="drop-text"><strong>Arrastra una imagen aquí</strong></div>
       <div class="drop-text" style="margin-top:4px">o</div>
       <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()">Seleccionar imagen</button>
@@ -348,7 +382,7 @@
 
     <div id="preview-wrap">
       <img id="preview-img" src="">
-      <div><button class="btn-nueva" onclick="reiniciar();document.getElementById('fi').click()">🔄 Analizar otra imagen</button></div>
+      <div><button class="btn-nueva" onclick="reiniciar();document.getElementById('fi').click()"><svg class="icon"><use href="#i-refresh"></use></svg> Analizar otra imagen</button></div>
     </div>
 
     <div id="quality-banner"></div>
@@ -367,7 +401,7 @@
           <span class="verdict-icon" id="verdict-icon"></span>
           <div class="verdict-label" id="verdict-label"></div>
           <div class="verdict-desc" id="verdict-desc"></div>
-          <div class="verdict-dudoso" id="verdict-dudoso">⚠️ Caso dudoso — la probabilidad está cerca del umbral de decisión. Se recomienda revisión prioritaria por un dermatólogo.</div>
+          <div class="verdict-dudoso" id="verdict-dudoso"><svg class="icon"><use href="#i-alert"></use></svg> Caso dudoso — la probabilidad está cerca del umbral de decisión. Se recomienda revisión prioritaria por un dermatólogo.</div>
         </div>
         <div class="conf-label">Nivel de confianza del modelo</div>
         <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar"></div></div>
@@ -385,7 +419,7 @@
             <div class="chart-box"><svg id="donut" width="220" height="220" viewBox="0 0 220 220"></svg><div class="cap">Probabilidad Benigno / Maligno</div></div>
             <div class="chart-box"><svg id="radar" width="260" height="240" viewBox="0 0 260 240"></svg><div class="cap">Perfil morfológico ABCDE</div></div>
           </div>
-          <div class="section-title" style="margin-top:20px">📊 Nivel de riesgo</div>
+          <div class="section-title" style="margin-top:20px"><svg class="icon"><use href="#i-bars"></use></svg> Nivel de riesgo</div>
           <div class="gauge-wrap">
             <svg width="260" height="145" viewBox="0 0 260 145">
               <path d="M24 130 A106 106 0 0 1 236 130" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="18" stroke-linecap="round"/>
@@ -402,7 +436,7 @@
 
           <!-- Explorador de umbral -->
           <div class="thr-box">
-            <div class="section-title" style="margin:0 0 6px">🎚️ Explorador de umbral de decisión</div>
+            <div class="section-title" style="margin:0 0 6px"><svg class="icon"><use href="#i-sliders"></use></svg> Explorador de umbral de decisión</div>
             <div style="font-size:.8rem;color:var(--muted)">Ajusta el umbral con que el modelo decide "Maligno" y observa el efecto en vivo.</div>
             <div class="thr-row">
               <span style="font-size:.78rem;color:var(--muted)">0.50</span>
@@ -417,7 +451,7 @@
 
         <!-- PÁGINA: Explicabilidad -->
         <div class="page" id="page-explica">
-          <div class="section-title">🔥 Mapas de explicabilidad (XAI)</div>
+          <div class="section-title"><svg class="icon"><use href="#i-flame"></use></svg> Mapas de explicabilidad (XAI)</div>
           <div class="subnav">
             <button class="sub-btn active" id="xb-gradcam" onclick="setXai('gradcam')">Grad-CAM<span class="sub-dot" id="xd-gradcam"></span></button>
             <button class="sub-btn" id="xb-saliency" onclick="setXai('saliency')">Saliency<span class="sub-dot" id="xd-saliency"></span></button>
@@ -428,14 +462,14 @@
           <div class="adv-note" id="xai-note"></div>
 
           <div class="adv-block" style="margin-top:16px">
-            <div class="adv-head"><span>🔬 Comparativa Grad-CAM vs Oclusión</span><button class="adv-btn" id="btn-cmp" onclick="runComparar()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-search"></use></svg> Comparativa Grad-CAM vs Oclusión</span><button class="adv-btn" id="btn-cmp" onclick="runComparar()">Ejecutar</button></div>
             <div class="adv-body" id="out-cmp"></div>
           </div>
         </div>
 
         <!-- PÁGINA: Detección -->
         <div class="page" id="page-deteccion">
-          <div class="section-title">📍 Mapa de detección (ventana deslizante)</div>
+          <div class="section-title"><svg class="icon"><use href="#i-pin"></use></svg> Mapa de detección (ventana deslizante)</div>
           <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Desliza una ventana clasificando cada región para localizar la zona más sospechosa.</div>
           <div style="text-align:center"><button class="adv-btn" id="btn-det" onclick="runDeteccion()">Ejecutar análisis</button></div>
           <div class="adv-body" id="out-det" style="margin-top:14px"></div>
@@ -443,7 +477,7 @@
 
         <!-- PÁGINA: Incertidumbre -->
         <div class="page" id="page-incert">
-          <div class="section-title">❓ Mapa de incertidumbre (Monte Carlo Dropout)</div>
+          <div class="section-title"><svg class="icon"><use href="#i-help"></use></svg> Mapa de incertidumbre (Monte Carlo Dropout)</div>
           <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Activa el dropout y repite la inferencia para estimar dónde "duda" el modelo.</div>
           <div style="text-align:center"><button class="adv-btn" id="btn-inc" onclick="runIncert()">Ejecutar análisis</button></div>
           <div class="adv-body" id="out-inc" style="margin-top:14px"></div>
@@ -451,7 +485,7 @@
 
         <!-- PÁGINA: Visión -->
         <div class="page" id="page-vis">
-          <div class="section-title">🎨 Segmentación y color</div>
+          <div class="section-title"><svg class="icon"><use href="#i-palette"></use></svg> Segmentación y color</div>
           <div class="vis-row">
             <div class="vis-box"><img id="vis-seg" src=""><div class="vis-cap">Lesión segmentada (contorno)</div></div>
             <div class="vis-box"><img id="vis-bordes" src=""><div class="vis-cap">Detección de bordes (Canny)</div></div>
@@ -459,14 +493,14 @@
           <div class="vis-row" style="margin-top:14px">
             <div class="vis-box" style="max-width:480px"><img id="vis-hist" src=""><div class="vis-cap">Histograma de color</div></div>
           </div>
-          <div class="section-title" style="margin-top:18px">🎨 Colores dominantes</div>
+          <div class="section-title" style="margin-top:18px"><svg class="icon"><use href="#i-palette"></use></svg> Colores dominantes</div>
           <div class="paleta" id="paleta"></div>
           <div id="vis-fail" style="display:none;font-size:.82rem;color:var(--muted);background:var(--card2);padding:12px;border-radius:12px">No se pudo segmentar una lesión clara — se omiten las visualizaciones.</div>
         </div>
 
         <!-- PÁGINA: ABCDE -->
         <div class="page" id="page-abcde">
-          <div class="section-title">🔬 Análisis morfológico ABCDE</div>
+          <div class="section-title"><svg class="icon"><use href="#i-search"></use></svg> Análisis morfológico ABCDE</div>
           <div id="abcde-zone">
             <div class="abcde-grid" id="abcde-grid"></div>
             <div style="font-size:.72rem;color:var(--muted);margin-top:10px;text-align:center">Criterios calculados por procesamiento de imagen (OpenCV). El diámetro es relativo (px), sin escala física.</div>
@@ -478,30 +512,30 @@
         <div class="page" id="page-avanzado">
           <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Análisis que ejercitan el modelo de forma intensiva. Cada uno corre bajo demanda (tarda unos segundos en CPU).</div>
           <div class="adv-block">
-            <div class="adv-head"><span>🛡️ Robustez y confiabilidad (TTA)</span><button class="adv-btn" id="btn-tta" onclick="runTTA()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-shield"></use></svg> Robustez y confiabilidad (TTA)</span><button class="adv-btn" id="btn-tta" onclick="runTTA()">Ejecutar</button></div>
             <div class="adv-body" id="out-tta"></div>
           </div>
           <div class="adv-block">
-            <div class="adv-head"><span>🎯 Diagnóstico enfocado (recorte a la lesión)</span><button class="adv-btn" id="btn-enf" onclick="runEnfocado()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-target"></use></svg> Diagnóstico enfocado (recorte a la lesión)</span><button class="adv-btn" id="btn-enf" onclick="runEnfocado()">Ejecutar</button></div>
             <div class="adv-body" id="out-enf"></div>
           </div>
           <div class="adv-block">
-            <div class="adv-head"><span>🌫️ Robustez a ruido</span><button class="adv-btn" id="btn-rui" onclick="runRuido()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-fog"></use></svg> Robustez a ruido</span><button class="adv-btn" id="btn-rui" onclick="runRuido()">Ejecutar</button></div>
             <div class="adv-body" id="out-rui"></div>
           </div>
           <div class="adv-block">
-            <div class="adv-head"><span>🔀 Test de robustez (rotación / brillo)</span><button class="adv-btn" id="btn-rob" onclick="runRobustez()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-shuffle"></use></svg> Test de robustez (rotación / brillo)</span><button class="adv-btn" id="btn-rob" onclick="runRobustez()">Ejecutar</button></div>
             <div class="adv-body" id="out-rob"></div>
           </div>
           <div class="adv-block">
-            <div class="adv-head"><span>🎨 Análisis por canal RGB</span><button class="adv-btn" id="btn-can" onclick="runCanales()">Ejecutar</button></div>
+            <div class="adv-head"><span><svg class="icon"><use href="#i-palette"></use></svg> Análisis por canal RGB</span><button class="adv-btn" id="btn-can" onclick="runCanales()">Ejecutar</button></div>
             <div class="adv-body" id="out-can"></div>
           </div>
         </div>
 
         <!-- PÁGINA: Consenso XAI -->
         <div class="page" id="page-consenso">
-          <div class="section-title">🧭 Consenso de explicabilidad</div>
+          <div class="section-title"><svg class="icon"><use href="#i-compass"></use></svg> Consenso de explicabilidad</div>
           <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Combina Grad-CAM, Saliency, Oclusión e Integrated Gradients (ya calculados) en un solo mapa promedio, y mide cuánto coinciden entre sí — sin cómputo adicional del modelo.</div>
           <div id="consenso-wait" style="text-align:center;color:var(--muted);font-size:.85rem;padding:20px">Esperando a que terminen de precargarse las 4 técnicas de explicabilidad…</div>
           <div id="consenso-body" style="display:none">
@@ -523,21 +557,21 @@
 
         <!-- PÁGINA: Evolución -->
         <div class="page" id="page-evolucion">
-          <div class="section-title">📈 Comparador de evolución</div>
+          <div class="section-title"><svg class="icon"><use href="#i-trend"></use></svg> Comparador de evolución</div>
           <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Sube dos fotos de la misma lesión en momentos distintos para evaluar la letra <b>E</b> (Evolución) del ABCDE.</div>
           <div class="evo-cols">
             <div class="evo-col">
-              <h4>📷 Antes</h4>
+              <h4><svg class="icon"><use href="#i-camera"></use></svg> Antes</h4>
               <input type="file" id="evo-fi-a" accept="image/*" style="display:none" onchange="onEvoFile('a',this.files[0])">
               <div class="evo-drop" id="evo-drop-a" onclick="document.getElementById('evo-fi-a').click()">
-                <div id="evo-content-a"><div style="font-size:2rem">🩺</div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
+                <div id="evo-content-a"><div style="font-size:2rem"><svg class="icon"><use href="#i-activity"></use></svg></div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
               </div>
             </div>
             <div class="evo-col">
-              <h4>📷 Después</h4>
+              <h4><svg class="icon"><use href="#i-camera"></use></svg> Después</h4>
               <input type="file" id="evo-fi-b" accept="image/*" style="display:none" onchange="onEvoFile('b',this.files[0])">
               <div class="evo-drop" id="evo-drop-b" onclick="document.getElementById('evo-fi-b').click()">
-                <div id="evo-content-b"><div style="font-size:2rem">🩺</div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
+                <div id="evo-content-b"><div style="font-size:2rem"><svg class="icon"><use href="#i-activity"></use></svg></div><div style="font-size:.82rem;color:var(--muted)">Click para subir</div></div>
               </div>
             </div>
           </div>
@@ -547,7 +581,7 @@
 
         <!-- PÁGINA: Guía -->
         <div class="page" id="page-guia">
-          <div class="section-title">📖 Guía de interpretación</div>
+          <div class="section-title"><svg class="icon"><use href="#i-book"></use></svg> Guía de interpretación</div>
           <div class="guia-item"><b>Regla ABCDE.</b> Criterios clínicos para evaluar lesiones pigmentadas: <b>A</b>simetría, <b>B</b>orde irregular, <b>C</b>olor heterogéneo, <b>D</b>iámetro &gt; 6 mm y <b>E</b>volución. A mayor número de criterios, mayor sospecha de malignidad.</div>
           <div class="guia-item"><b>Asimetría.</b> Cuánto difiere una mitad de la lesión respecto a la otra. Las benignas tienden a ser simétricas.</div>
           <div class="guia-item"><b>Borde.</b> Regularidad del contorno (circularidad). Bordes irregulares o dentados son señal de alerta.</div>
@@ -560,8 +594,8 @@
           <div class="guia-item"><b>Datasets HAM10000 + ISIC.</b> 13 309 imágenes dermatoscópicas fusionadas y deduplicadas. La herramienta funciona mejor en lesiones pigmentadas similares a estas fuentes.</div>
         </div>
 
-        <div class="warning-box">⚠️ <span>Herramienta académica — no sustituye el diagnóstico de un dermatólogo certificado. Ante cualquier lesión sospechosa, consulte a un profesional de la salud.</span></div>
-        <button class="btn-reset" onclick="reiniciar()">🔄 Analizar otra imagen</button>
+        <div class="warning-box"><svg class="icon"><use href="#i-alert"></use></svg> <span>Herramienta académica — no sustituye el diagnóstico de un dermatólogo certificado. Ante cualquier lesión sospechosa, consulte a un profesional de la salud.</span></div>
+        <button class="btn-reset" onclick="reiniciar()"><svg class="icon"><use href="#i-refresh"></use></svg> Analizar otra imagen</button>
       </div>
     </div>
 
@@ -610,7 +644,7 @@ function renderVeredicto(prob){
 
   const box=document.getElementById('verdict-box');
   box.className='verdict '+(esMaligno?'maligno':'benigno');
-  document.getElementById('verdict-icon').textContent=esMaligno?'⚠️':'✅';
+  document.getElementById('verdict-icon').innerHTML=esMaligno?'<svg class="icon"><use href="#i-alert"></use></svg>':'<svg class="icon"><use href="#i-check"></use></svg>';
   document.getElementById('verdict-label').textContent=esMaligno?'MALIGNO':'BENIGNO';
   document.getElementById('verdict-desc').textContent=(esMaligno
     ?'Se detectaron características asociadas a lesiones potencialmente malignas.'
@@ -693,21 +727,54 @@ function onDragOver(e){e.preventDefault();document.getElementById('dropZone').cl
 function onDragLeave(e){document.getElementById('dropZone').classList.remove('drag-over')}
 function onDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))onFileSelected(f)}
 let imagenPendienteB64=null;
-function onFileSelected(file){
+
+/* Redimensiona la imagen en el navegador antes de enviarla al servidor. Las
+   fotos de camara/celular sin comprimir (varios MB, 4000px+ de lado) no
+   aportan nada: el servidor vuelve a redimensionar todo a 380px para el
+   modelo. Enviar el original de fabrica multiplicaba el tamano del payload
+   (y el costo de decodificarlo) en las ~9 peticiones que analiza una sola
+   imagen (analizar/explicabilidad/saliency/oclusion/integrated/deteccion/
+   incertidumbre), lo que sumado a la carga de TensorFlow presionaba mucho
+   la RAM/CPU en equipos sin GPU. maxLado cubre de sobra la resolucion que
+   usa el modelo (IMG_SIZE=380) con margen para recortes/zoom. */
+function redimensionarImagen(file,maxLado){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(reader.error);
+    reader.onload=e=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('No se pudo leer la imagen'));
+      img.onload=()=>{
+        let{width:w,height:h}=img;
+        if(w>maxLado||h>maxLado){
+          const esc=maxLado/Math.max(w,h);
+          w=Math.round(w*esc);h=Math.round(h*esc);
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.9));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onFileSelected(file){
   if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(e){
-    ultimaImagenB64=e.target.result.split(',')[1];
-    document.getElementById('preview-img').src=e.target.result;
-    document.getElementById('preview-wrap').style.display='block';
-    document.getElementById('dropZone').style.display='none';
-    document.getElementById('resultado').style.display='none';
-    document.getElementById('panel-metricas').style.display='none';
-    document.getElementById('quality-banner').classList.remove('show');
-    habilitarNav(false);
-    evaluarCalidadYcontinuar(ultimaImagenB64);
-  };
-  reader.readAsDataURL(file);
+  let dataUrl;
+  try{dataUrl=await redimensionarImagen(file,1024);}
+  catch(e){alert('No se pudo procesar la imagen: '+e);return;}
+  ultimaImagenB64=dataUrl.split(',')[1];
+  document.getElementById('preview-img').src=dataUrl;
+  document.getElementById('preview-wrap').style.display='block';
+  document.getElementById('dropZone').style.display='none';
+  document.getElementById('resultado').style.display='none';
+  document.getElementById('panel-metricas').style.display='none';
+  document.getElementById('quality-banner').classList.remove('show');
+  habilitarNav(false);
+  evaluarCalidadYcontinuar(ultimaImagenB64);
 }
 async function analizar(b64,forzar){
   document.getElementById('loading').style.display='block';
@@ -722,7 +789,7 @@ async function analizar(b64,forzar){
       imagenPendienteB64=b64;
       const banner=document.getElementById('quality-banner');
       banner.className='show danger';
-      banner.innerHTML='<div class="qb-row">⚠️ '+d.motivo+'</div>'+
+      banner.innerHTML='<div class="qb-row"><svg class="icon"><use href="#i-alert"></use></svg> '+d.motivo+'</div>'+
         '<div class="qb-actions">'+
         '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Sí, continuar de todas formas</button>'+
         '<button class="qb-btn qb-btn-no" onclick="confirmarAnalisis(false)">No, cancelar</button>'+
@@ -733,7 +800,7 @@ async function analizar(b64,forzar){
       imagenPendienteB64=b64;
       const banner=document.getElementById('quality-banner');
       banner.className='show warn';
-      banner.innerHTML='<div class="qb-row">❓ <b>No clasificable con confianza.</b> '+d.motivo+
+      banner.innerHTML='<div class="qb-row"><svg class="icon"><use href="#i-help"></use></svg> <b>No clasificable con confianza.</b> '+d.motivo+
         ' (incertidumbre ±'+(d.incertidumbre*100).toFixed(1)+'%)</div>'+
         '<div class="qb-actions">'+
         '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Ver veredicto de todas formas</button>'+
@@ -775,7 +842,7 @@ async function evaluarCalidadYcontinuar(b64){
   if(d&&!d.error&&d.es_piel===false){
     imagenPendienteB64=b64;
     banner.className='show danger';
-    banner.innerHTML=(d.advertencias||[]).map(a=>'<div class="qb-row">⚠️ '+a+'</div>').join('')+
+    banner.innerHTML=(d.advertencias||[]).map(a=>'<div class="qb-row"><svg class="icon"><use href="#i-alert"></use></svg> '+a+'</div>').join('')+
       '<div class="qb-actions">'+
       '<button class="qb-btn qb-btn-yes" onclick="confirmarAnalisis(true)">Sí, continuar de todas formas</button>'+
       '<button class="qb-btn qb-btn-no" onclick="confirmarAnalisis(false)">No, cancelar</button>'+
@@ -792,12 +859,12 @@ function mostrarBannerCalidadInfo(d){
   if(!d.advertencias||d.advertencias.length===0){
     banner.className='show';
     banner.style.background='rgba(52,211,153,.08)';banner.style.border='1px solid rgba(52,211,153,.25)';banner.style.color='#34d399';
-    banner.innerHTML='<div class="qb-row">✅ Imagen válida — confianza de piel real: '+Math.round((d.es_piel_confianza||0)*100)+'%</div>';
+    banner.innerHTML='<div class="qb-row"><svg class="icon"><use href="#i-check"></use></svg> Imagen válida — confianza de piel real: '+Math.round((d.es_piel_confianza||0)*100)+'%</div>';
     return;
   }
   banner.className='show warn';
   banner.style.background='';banner.style.border='';banner.style.color='';
-  banner.innerHTML=d.advertencias.map(a=>'<div class="qb-row">⚠️ '+a+'</div>').join('');
+  banner.innerHTML=d.advertencias.map(a=>'<div class="qb-row"><svg class="icon"><use href="#i-alert"></use></svg> '+a+'</div>').join('');
 }
 function confirmarAnalisis(continuar){
   const banner=document.getElementById('quality-banner');
@@ -808,7 +875,7 @@ function confirmarAnalisis(continuar){
     return;
   }
   banner.className='show danger';
-  banner.innerHTML='<div class="qb-row">⚠️ Continuando de todas formas — el resultado puede no ser confiable.</div>';
+  banner.innerHTML='<div class="qb-row"><svg class="icon"><use href="#i-alert"></use></svg> Continuando de todas formas — el resultado puede no ser confiable.</div>';
   analizar(imagenPendienteB64,true);
   imagenPendienteB64=null;
 }
@@ -827,7 +894,13 @@ async function precargarAvanzado(b64){
   bar.classList.add('show');let hechos=0;
   cnt.textContent='0/'+tareas.length;
 
-  await Promise.allSettled(tareas.map(async t=>{
+  // Secuencial a proposito (NO Promise.all/allSettled en paralelo): cada tarea
+  // es un forward+backward pass completo sobre EfficientNetB4. Lanzar las 5 a
+  // la vez saturaba CPU/RAM en maquinas sin GPU (el equivalente a 5 peticiones
+  // /explicabilidad simultaneas ademas de la que ya esta en curso). Una detras
+  // de otra tarda un poco mas en completarse pero no compite por los mismos
+  // recursos del proceso a la vez.
+  for(const t of tareas){
     try{
       const d=await(await fetch(t.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64})})).json();
       if(d.overlay_b64){
@@ -850,7 +923,7 @@ async function precargarAvanzado(b64){
       }
     }catch(e){/* si falla, queda para calcularse bajo demanda al hacer clic */}
     hechos++;cnt.textContent=hechos+'/'+tareas.length;
-  }));
+  }
   bar.classList.remove('show');
 }
 
@@ -1185,7 +1258,7 @@ async function computeConsenso(){
     document.getElementById('agree-val').textContent=acuerdo.toFixed(0)+'%';
 
     document.getElementById('consenso-grid').innerHTML=techs.map(t=>
-      '<div class="consenso-thumb"><img src="data:image/png;base64,'+xaiHeatCache[t]+'"><div class="nm">'+nombres[t]+' <span class="ck">✓</span></div></div>').join('');
+      '<div class="consenso-thumb"><img src="data:image/png;base64,'+xaiHeatCache[t]+'"><div class="nm">'+nombres[t]+' <span class="ck"><svg class="icon"><use href="#i-check-sm"></use></svg></span></div></div>').join('');
 
     let interp;
     if(acuerdo>=60) interp='Alto acuerdo entre las 4 técnicas: la explicación es consistente y confiable.';
@@ -1198,29 +1271,29 @@ async function computeConsenso(){
 
 /* ===================== Comparador de evolución ===================== */
 let evoData={a:null,b:null};
-function onEvoFile(slot,file){
+async function onEvoFile(slot,file){
   if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    document.getElementById('evo-content-'+slot).innerHTML='<img src="'+e.target.result+'">';
-    document.getElementById('evo-loading').style.display='block';
-    document.getElementById('evo-cmp').style.display='none';
-    try{
-      const b64=e.target.result.split(',')[1];
-      const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64,modo:modoActual,forzar:true})});
-      const d=await resp.json();
-      if(d.error||d.rechazado){alert(d.error||d.motivo||'Imagen no valida');document.getElementById('evo-loading').style.display='none';return;}
-      evoData[slot]={img:e.target.result,resultado:d};
-    }catch(err){alert('Error analizando imagen: '+err);}
-    document.getElementById('evo-loading').style.display='none';
-    if(evoData.a&&evoData.b) renderEvoComparacion();
-  };
-  reader.readAsDataURL(file);
+  let dataUrl;
+  try{dataUrl=await redimensionarImagen(file,1024);}
+  catch(err){alert('No se pudo procesar la imagen: '+err);return;}
+  document.getElementById('evo-content-'+slot).innerHTML='<img src="'+dataUrl+'">';
+  document.getElementById('evo-loading').style.display='block';
+  document.getElementById('evo-cmp').style.display='none';
+  try{
+    const b64=dataUrl.split(',')[1];
+    const resp=await fetch('/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagen:b64,modo:modoActual,forzar:true})});
+    const d=await resp.json();
+    if(d.error||d.rechazado){alert(d.error||d.motivo||'Imagen no valida');document.getElementById('evo-loading').style.display='none';return;}
+    evoData[slot]={img:dataUrl,resultado:d};
+  }catch(err){alert('Error analizando imagen: '+err);}
+  document.getElementById('evo-loading').style.display='none';
+  if(evoData.a&&evoData.b) renderEvoComparacion();
 }
 function renderEvoComparacion(){
   const a=evoData.a.resultado,b=evoData.b.resultado;
   const pa=a.prob_raw,pb=b.prob_raw,delta=pb-pa;
-  const flecha=delta>0.02?'⬆️':(delta<-0.02?'⬇️':'➡️');
+  const flechaIco=delta>0.02?'arrow-up':(delta<-0.02?'arrow-down':'arrow-right');
+  const flecha='<svg class="icon" style="color:'+(delta>0.02?'#f87171':(delta<-0.02?'#34d399':'#8aa0bb'))+'"><use href="#i-'+flechaIco+'"></use></svg>';
   const dc=delta>0.02?'#f87171':(delta<-0.02?'#34d399':'#8aa0bb');
   let html='';
   html+='<div class="evo-row"><span class="lbl">Diagnóstico</span><div class="vals">'+a.clase+' <span class="evo-arrow">→</span> '+b.clase+'</div></div>';
@@ -1234,8 +1307,8 @@ function renderEvoComparacion(){
     });
   }
   let interp;
-  if(delta>0.05) interp='⚠️ La probabilidad de malignidad aumentó de forma notable — se recomienda evaluación profesional cuanto antes.';
-  else if(delta<-0.05) interp='✅ La probabilidad de malignidad disminuyó respecto a la primera imagen.';
+  if(delta>0.05) interp='<svg class="icon"><use href="#i-alert"></use></svg> La probabilidad de malignidad aumentó de forma notable — se recomienda evaluación profesional cuanto antes.';
+  else if(delta<-0.05) interp='<svg class="icon"><use href="#i-check"></use></svg> La probabilidad de malignidad disminuyó respecto a la primera imagen.';
   else interp='No se observan cambios significativos entre ambas imágenes.';
   html+='<div class="adv-note">'+interp+'</div>';
   document.getElementById('evo-cmp').innerHTML=html;

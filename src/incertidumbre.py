@@ -77,32 +77,39 @@ def _localizar_base_conv():
     return None, CAPA_CONV
 
 
+# Sub-modelo construido UNA sola vez al importar (no en cada request). Igual
+# que en gradcam.py: `keras.models.Model(...)` muta el bookkeeping interno de
+# capas compartidas con `modelo`, y reconstruirlo desde varios threads de
+# gunicorn en paralelo (cada peticion de /incertidumbre) no es thread-safe.
+_BASE_SUB, _CONV = _localizar_base_conv()
+if _CONV is None:
+    _GM, _COLA = None, None
+elif _BASE_SUB is None:
+    _GM, _COLA = keras.models.Model(modelo.inputs, [_CONV.output, modelo.output]), None
+else:
+    _GM = keras.models.Model(_BASE_SUB.inputs, [_CONV.output, _BASE_SUB.output])
+    _COLA = modelo.layers[modelo.layers.index(_BASE_SUB) + 1:]
+
+
 def mc_dropout(img_rgb, n=6, chunk=6):
     """Stats de incertidumbre + mapa espacial. Procesa en bloques pequeños."""
     import cv2
     try:
         base = cv2.resize(img_rgb, (IMG_SIZE, IMG_SIZE)).astype('float32')
 
-        base_sub, conv = _localizar_base_conv()
-        if conv is None:
+        if _CONV is None:
             raise ValueError("sin capa convolucional")
-
-        if base_sub is None:
-            gm = keras.models.Model(modelo.inputs, [conv.output, modelo.output])
-        else:
-            sub = keras.models.Model(base_sub.inputs, [conv.output, base_sub.output])
-            idx = modelo.layers.index(base_sub); cola = modelo.layers[idx+1:]
 
         probs_all, conv_all = [], []
         hecho = 0
         while hecho < n:
             c = min(chunk, n - hecho)
             xs = tf.convert_to_tensor(np.repeat(base[None], c, axis=0))   # (c,H,W,3)
-            if base_sub is None:
-                conv_out, preds = gm(xs, training=True)
+            if _COLA is None:
+                conv_out, preds = _GM(xs, training=True)
             else:
-                conv_out, x = sub(xs, training=True)
-                for capa in cola:
+                conv_out, x = _GM(xs, training=True)
+                for capa in _COLA:
                     x = capa(x, training=True)
                 preds = x
             probs_all.append(preds[:, 0].numpy())
