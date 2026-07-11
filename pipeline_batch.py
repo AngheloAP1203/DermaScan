@@ -76,7 +76,23 @@ def _es_uri(ruta):
 
 
 def _normalizar_entrada(ruta):
-    return ruta if _es_uri(ruta) else os.path.abspath(ruta)
+    """Resuelve una ruta de entrada/salida de CLI a su forma absoluta real, y
+    rechaza que resuelva a la raiz del filesystem. sys.argv no se valida en
+    ningun otro punto del pipeline antes de llegar a os.makedirs/open/los
+    writers de Spark — sin este chequeo, un argumento mal construido a mano
+    o por un agente/LLM automatizando el spark-submit (p.ej. una ruta vacia,
+    "/", "..", o un symlink que apunte fuera de lo previsto) haria que el
+    pipeline cree directorios o escriba archivos fuera de donde el operador
+    realmente queria, sin ningun aviso previo."""
+    if _es_uri(ruta):
+        return ruta
+    real = os.path.realpath(ruta)
+    if not ruta.strip() or os.path.dirname(real) == real:
+        raise ValueError(
+            f"Ruta invalida: '{ruta}' resuelve a '{real}', la raiz del "
+            f"filesystem. Especifica un subdirectorio explicito."
+        )
+    return real
 
 
 def _unir(base, nombre):
