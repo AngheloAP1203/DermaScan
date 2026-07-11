@@ -38,7 +38,11 @@ EXPOSE 7860
 # mas que esto se considera colgado y gunicorn lo mata y reemplaza.
 ENV GUNICORN_WORKERS=2
 ENV GUNICORN_THREADS=2
-CMD gunicorn --bind 0.0.0.0:7860 \
+# `exec` reemplaza el proceso de sh en vez de quedar como hijo: gunicorn pasa
+# a ser PID 1 y recibe SIGTERM directamente (apagado ordenado al redesplegar/
+# reciclar el contenedor). Sin esto, Docker mata al shell wrapper y gunicorn
+# puede quedar colgado hasta el SIGKILL del timeout de parada.
+CMD exec gunicorn --bind 0.0.0.0:7860 \
      --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --worker-class gthread \
      --timeout 30 --graceful-timeout 15 \
      --max-requests 500 --max-requests-jitter 50 \
